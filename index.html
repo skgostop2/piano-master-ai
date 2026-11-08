@@ -144,16 +144,27 @@ canvas.staff{display:block;max-width:100%}
 .key.hint.rhh{box-shadow:inset 0 -14px 0 var(--rh)}
 .key.wrong{background:var(--bad)!important;color:#fff!important}
 .key.ok{background:var(--good)!important;color:#fff!important}
-/* 노브 */
-.knobs{display:flex;flex-wrap:wrap;gap:14px 18px;margin-top:12px}
-.knob{display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;cursor:ns-resize;user-select:none;-webkit-user-select:none;touch-action:none;border-radius:10px;padding:4px}
-.knob:focus-visible{outline:3px solid var(--accent)}
-.knob .dial{--rot:0deg;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--bg2),var(--panel) 60%,var(--line));border:2px solid var(--line);box-shadow:0 3px 8px rgba(0,0,0,.25),inset 0 -3px 6px rgba(0,0,0,.15);position:relative}
-.knob .dial::before{content:"";position:absolute;inset:-7px;border-radius:50%;border:3px solid transparent;border-top-color:var(--line);border-left-color:var(--line);border-right-color:var(--line);transform:rotate(0deg);opacity:.6}
-.knob .dial i{position:absolute;left:50%;top:5px;width:4px;height:18px;margin-left:-2px;background:var(--accent);border-radius:2px;transform-origin:50% 25px;transform:rotate(var(--rot))}
-.knob.active .dial{border-color:var(--accent)}
-.knob .kl{font-size:.8em;font-weight:700;color:var(--muted);white-space:nowrap}
-.knob .kv{font-size:.9em;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;max-width:84px;overflow:hidden;text-overflow:ellipsis}
+/* 세로 페이더 · 선택 목록 · 소리 시트 */
+#studioSheet{flex:0 0 auto;background:var(--bg2);border-top:2px solid var(--accent);padding:4px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));max-height:46vh;overflow:auto}
+.stab{min-width:0}
+.knobs{display:flex;flex-wrap:nowrap;gap:10px;margin-top:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.fader,.picker{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto;width:74px;user-select:none;-webkit-user-select:none;border-radius:10px;padding:4px 2px}
+.fader:focus-visible,.picker:focus-visible{outline:3px solid var(--accent)}
+.fader .track{position:relative;width:34px;height:120px;border-radius:17px;background:var(--panel);border:1px solid var(--line);touch-action:none;cursor:ns-resize;overflow:visible}
+.fader .fill{position:absolute;left:3px;right:3px;bottom:3px;border-radius:14px;background:var(--accent);opacity:.7}
+.fader .thumb{position:absolute;left:-4px;width:42px;height:24px;border-radius:12px;background:var(--bg2);border:2px solid var(--accent);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.fader.active .thumb{background:var(--accent)}
+.fader .pm{display:flex;gap:4px}
+.fader .pm button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-weight:800;font-size:1.1em;padding:0}
+.kl{font-size:.8em;font-weight:700;color:var(--muted);white-space:nowrap}
+.kv{font-size:.9em;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.picker{width:118px}
+.picker .wheel{height:132px;width:100%;overflow-y:auto;scroll-snap-type:y mandatory;border:1px solid var(--line);border-radius:10px;background:var(--panel);scrollbar-width:none;position:relative;-webkit-mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent);mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent)}
+.picker .wheel::-webkit-scrollbar{display:none}
+.picker .wheel .pad{height:44px;flex:0 0 44px}
+.picker .wheel button{display:block;width:100%;height:44px;scroll-snap-align:center;border:0;background:transparent;font-weight:600;font-size:.95em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
+.picker .wheel button[aria-selected="true"]{color:var(--accent-fg);background:var(--accent);font-weight:800;border-radius:8px}
+@media (max-height:480px){ #studioSheet{max-height:70vh} .fader .track{height:90px} .picker .wheel{height:132px} }
 #noteReadout{min-width:120px;font-weight:700;font-variant-numeric:tabular-nums}
 @media (max-width:700px){
   body{font-size:16px}
@@ -248,21 +259,6 @@ canvas.staff{display:block;max-width:100%}
           <button class="btn toggle" id="showNamesBtn" aria-pressed="true">음이름 표시</button>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="row between"><div><h3>🎛 소리 스튜디오</h3><p class="muted small">노브를 위아래로 드래그(또는 휠·방향키)해서 조절합니다. 두 번 누르면 기본값. 선택형 노브는 탭하면 다음 항목.</p></div><button class="btn" id="soundPreview">🔊 들어보기</button></div>
-      <div class="knobs" id="soundKnobs"></div>
-    </div>
-    <div class="card">
-      <div class="row between"><div><h3>🥁 드럼 · 자동 반주</h3><p class="muted small">드럼은 합성음, 반주는 베이스+패드+코드 스트로크입니다. 떨어지는 음표·악보 연습에서는 곡의 왼손 음에서 코드를 추출해 따라옵니다.</p></div>
-        <div class="row"><button class="btn toggle" id="bandDrums" aria-pressed="false">🥁 드럼</button><button class="btn toggle" id="bandAcc" aria-pressed="false">🎸 반주</button><button class="btn" id="bandStop">■ 정지</button></div></div>
-      <div class="knobs" id="bandKnobs"></div>
-      <p class="muted small" id="bandState" style="margin-top:6px">정지</p>
-    </div>
-    <div class="card">
-      <div class="row between"><div><h3>🎵 배경음악 파일</h3><p class="muted small">내 기기의 mp3/m4a/wav를 불러와 배경으로 틀고 속도·음량을 조절합니다. (파일은 업로드되지 않고 이 기기에서만 재생)</p></div>
-        <div class="row"><label class="btn" for="musicFile">파일 선택</label><input type="file" id="musicFile" accept="audio/*" hidden><button class="btn primary" id="musicPlay">▶ 재생</button><button class="btn" id="musicStop">■ 정지</button></div></div>
-      <div class="row" style="margin-top:8px"><span class="chip" id="musicName">파일 없음</span><div class="knobs" id="musicKnobs" style="margin-top:0"></div></div>
     </div>
     <div class="grid">
       <div class="card">
@@ -512,9 +508,32 @@ canvas.staff{display:block;max-width:100%}
 </section>
 </main>
 
+<!-- 소리·반주 시트 (건반 위, 모든 화면에서 열림) -->
+<div id="studioSheet" hidden>
+  <div class="row between" style="padding:6px 0">
+    <div class="seg" id="studioTabs"><button data-tab="sound" aria-pressed="true">🎛 소리</button><button data-tab="band" aria-pressed="false">🥁 드럼·반주</button><button data-tab="music" aria-pressed="false">🎵 음악 파일</button></div>
+    <button class="btn sm" id="studioClose">닫기 ✕</button>
+  </div>
+  <div class="stab" data-tab="sound">
+    <div class="row between"><p class="muted small">슬라이더는 위아래로 끌거나 −/＋로 조절. 목록은 위아래로 굴리거나 항목을 탭. 값 두 번 탭=기본값.</p><button class="btn sm" id="soundPreview">🔊 들어보기</button></div>
+    <div class="knobs" id="soundKnobs"></div>
+  </div>
+  <div class="stab" data-tab="band" hidden>
+    <div class="row between"><p class="muted small">드럼·반주는 합성음. 떨어지는 음표·악보 연습에서는 곡의 왼손에서 코드를 추출해 따라옵니다.</p>
+      <div class="row"><button class="btn sm toggle" id="bandDrums" aria-pressed="false">🥁 드럼</button><button class="btn sm toggle" id="bandAcc" aria-pressed="false">🎸 반주</button><button class="btn sm" id="bandStop">■ 정지</button></div></div>
+    <div class="knobs" id="bandKnobs"></div>
+    <p class="muted small" id="bandState" style="margin-top:4px">정지</p>
+  </div>
+  <div class="stab" data-tab="music" hidden>
+    <div class="row between"><p class="muted small">내 기기의 mp3/m4a/wav를 배경으로 재생합니다(업로드되지 않음).</p>
+      <div class="row"><label class="btn sm" for="musicFile">파일 선택</label><input type="file" id="musicFile" accept="audio/*" hidden><button class="btn sm primary" id="musicPlay">▶ 재생</button><button class="btn sm" id="musicStop">■ 정지</button></div></div>
+    <div class="row"><span class="chip" id="musicName">파일 없음</span><div class="knobs" id="musicKnobs" style="margin-top:0"></div></div>
+  </div>
+</div>
 <!-- 건반 도크 -->
 <div id="dock">
   <div class="tools">
+    <button class="btn sm toggle" id="studioBtn" aria-pressed="false">🎛 소리</button>
     <button class="btn sm" id="octDown">◀ 옥타브</button>
     <button class="btn sm" id="octUp">옥타브 ▶</button>
     <button class="btn sm toggle" id="sustainBtn" aria-pressed="false">서스테인</button>
@@ -1336,24 +1355,35 @@ const App = {
 };
 
 
-/* ========== 노브(다이얼) 컴포넌트 ========== */
+/* ========== 세로 컨트롤: 페이더(연속값) · 선택 목록(항목) — 예전 Knob API 유지 ========== */
 const Knob = {
-  create(o) { // {label, min, max, value, step, options:[{v,t}], fmt, onChange, size}
-    const el = document.createElement('div'); el.className = 'knob'; el.tabIndex = 0; el.setAttribute('role', o.options ? 'listbox' : 'slider'); el.setAttribute('aria-label', o.label);
-    el.innerHTML = `<div class="dial"><i></i></div><div class="kl">${o.label}</div><div class="kv"></div>`;
-    const dial = $('.dial', el), kv = $('.kv', el); const disc = !!o.options; const min = disc ? 0 : o.min, max = disc ? o.options.length - 1 : o.max; let val = disc ? Math.max(0, o.options.findIndex(x => x.v === o.value)) : o.value; let acc = 0;
-    const render = () => { const r = (val - min) / (max - min); dial.style.setProperty('--rot', (-135 + r * 270) + 'deg'); kv.textContent = disc ? o.options[val].t : (o.fmt ? o.fmt(val) : Math.round(val)); el.setAttribute('aria-valuenow', val); };
-    const set = (v, fire = true) => { v = clamp(disc ? Math.round(v) : (o.step ? Math.round(v / o.step) * o.step : v), min, max); if (v === val) return; val = v; render(); if (fire && o.onChange) o.onChange(disc ? o.options[val].v : val); };
-    let drag = null; el.addEventListener('pointerdown', e => { e.preventDefault(); drag = { y: e.clientY, v: val }; el.setPointerCapture(e.pointerId); el.classList.add('active'); });
-    el.addEventListener('pointermove', e => { if (!drag) return; const dy = drag.y - e.clientY; const range = max - min; set(drag.v + dy / 160 * range * (disc ? 1.6 : 1)); });
-    const end = () => { drag = null; el.classList.remove('active'); }; el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
-    el.addEventListener('wheel', e => { e.preventDefault(); acc += e.deltaY; if (Math.abs(acc) > 30) { set(val + (acc < 0 ? 1 : -1) * (disc ? 1 : (o.step || (max - min) / 50))); acc = 0; } }, { passive: false });
-    el.addEventListener('dblclick', () => { if (o.reset != null) set(disc ? o.options.findIndex(x => x.v === o.reset) : o.reset); });
-    el.addEventListener('keydown', e => { if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); set(val + (disc ? 1 : (o.step || 1))); } if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); set(val - (disc ? 1 : (o.step || 1))); } });
-    // 탭으로 다음 항목 선택(휴대폰에서 돌리기 어려울 때)
-    let tapT = 0; el.addEventListener('click', e => { if (!disc) return; const now = performance.now(); if (now - tapT < 400 || Math.abs(e.movementY || 0) > 2) return; tapT = now; if (!drag && el._tapOK !== false) set(val + 1 > max ? min : val + 1); });
-    el.addEventListener('pointerdown', () => { el._downY = null; }); el.addEventListener('pointermove', e => { if (drag && Math.abs(drag.y - e.clientY) > 4) el._tapOK = false; }); el.addEventListener('pointerup', () => setTimeout(() => el._tapOK = true, 0));
-    render(); el.set = v => set(disc ? o.options.findIndex(x => x.v === v) : v, false); el.get = () => disc ? o.options[val].v : val; return el;
+  create(o) { return o.options ? this.picker(o) : this.fader(o); },
+  fader(o) {
+    const el = document.createElement('div'); el.className = 'fader'; el.setAttribute('role', 'slider'); el.setAttribute('aria-label', o.label);
+    el.innerHTML = `<div class="kl">${o.label}</div><div class="track"><div class="fill"></div><div class="thumb"></div></div><div class="kv"></div><div class="pm"><button type="button" aria-label="줄이기">−</button><button type="button" aria-label="늘리기">＋</button></div>`;
+    const track = $('.track', el), fill = $('.fill', el), thumb = $('.thumb', el), kv = $('.kv', el); const min = o.min, max = o.max, step = o.step || 1; let val = o.value;
+    const render = () => { const r = (val - min) / (max - min); fill.style.height = (r * 100) + '%'; thumb.style.bottom = `calc(${r * 100}% - 12px)`; kv.textContent = o.fmt ? o.fmt(val) : Math.round(val); el.setAttribute('aria-valuenow', val); };
+    const set = (v, fire = true) => { v = clamp(Math.round(v / step) * step, min, max); if (v === val) return; val = v; render(); if (fire && o.onChange) o.onChange(val); };
+    const fromY = y => { const r = track.getBoundingClientRect(); set(min + (1 - clamp((y - r.top) / r.height, 0, 1)) * (max - min)); };
+    let drag = false; track.addEventListener('pointerdown', e => { e.preventDefault(); drag = true; track.setPointerCapture(e.pointerId); el.classList.add('active'); fromY(e.clientY); });
+    track.addEventListener('pointermove', e => { if (drag) { e.preventDefault(); fromY(e.clientY); } }); const end = () => { drag = false; el.classList.remove('active'); }; track.addEventListener('pointerup', end); track.addEventListener('pointercancel', end);
+    const bump = (max - min) / 20; $$('.pm button', el)[0].onclick = () => set(val - (o.step || bump)); $$('.pm button', el)[1].onclick = () => set(val + (o.step || bump));
+    el.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { e.preventDefault(); set(val + (o.step || bump)); } if (e.key === 'ArrowDown') { e.preventDefault(); set(val - (o.step || bump)); } }); el.tabIndex = 0;
+    kv.ondblclick = () => { if (o.reset != null) set(o.reset); };
+    render(); el.set = v => set(v, false); el.get = () => val; return el;
+  },
+  picker(o) {
+    const el = document.createElement('div'); el.className = 'picker'; el.setAttribute('role', 'listbox'); el.setAttribute('aria-label', o.label);
+    el.innerHTML = `<div class="kl">${o.label}</div><div class="wheel"><div class="pad"></div>${o.options.map((x, i) => `<button type="button" role="option" data-i="${i}">${x.t}</button>`).join('')}<div class="pad"></div></div>`;
+    const wheel = $('.wheel', el); const items = $$('button', wheel); let val = Math.max(0, o.options.findIndex(x => x.v === o.value)); let scrollT = null; let programmatic = false;
+    const render = () => { items.forEach((b, i) => b.setAttribute('aria-selected', String(i === val))); };
+    const scrollToVal = (smooth = true) => { const b = items[val]; if (!b) return; programmatic = true; wheel.scrollTo({ top: b.offsetTop - wheel.clientHeight / 2 + b.offsetHeight / 2, behavior: smooth ? 'smooth' : 'auto' }); setTimeout(() => programmatic = false, smooth ? 350 : 0); };
+    const set = (i, fire = true, scroll = true) => { i = clamp(Math.round(i), 0, o.options.length - 1); const changed = i !== val; val = i; render(); if (scroll) scrollToVal(); if (changed && fire && o.onChange) o.onChange(o.options[val].v); };
+    items.forEach(b => b.onclick = () => set(+b.dataset.i));
+    wheel.addEventListener('scroll', () => { if (programmatic) return; clearTimeout(scrollT); scrollT = setTimeout(() => { const mid = wheel.scrollTop + wheel.clientHeight / 2; let best = 0, bd = 1e9; items.forEach((b, i) => { const d = Math.abs(b.offsetTop + b.offsetHeight / 2 - mid); if (d < bd) { bd = d; best = i; } }); set(best, true, true); }, 120); });
+    el.addEventListener('keydown', e => { if (e.key === 'ArrowUp') { e.preventDefault(); set(val - 1); } if (e.key === 'ArrowDown') { e.preventDefault(); set(val + 1); } }); el.tabIndex = 0;
+    render(); requestAnimationFrame(() => scrollToVal(false)); new ResizeObserver(() => scrollToVal(false)).observe(wheel);
+    el.set = v => set(o.options.findIndex(x => x.v === v), false); el.get = () => o.options[val].v; el.refresh = () => scrollToVal(false); return el;
   }
 };
 
@@ -1452,6 +1482,10 @@ const Studio = {
       K('musicRate', { label: '속도', min: 50, max: 150, step: 1, value: 100, reset: 100, fmt: v => Math.round(v) + '%', onChange: v => Music.setRate(v / 100) })
     );
     $('#soundPreview').onclick = () => this.preview();
+    const sheet = $('#studioSheet'); const openSheet = tab => { sheet.hidden = false; $('#studioBtn').setAttribute('aria-pressed', 'true'); $$('#studioTabs button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === tab))); $$('.stab', sheet).forEach(d => d.hidden = d.dataset.tab !== tab); Object.values(this.knobs).forEach(k => k.refresh && k.refresh()); };
+    $('#studioBtn').onclick = () => { if (sheet.hidden) openSheet($$('#studioTabs button[aria-pressed="true"]')[0]?.dataset.tab || 'sound'); else { sheet.hidden = true; $('#studioBtn').setAttribute('aria-pressed', 'false'); } };
+    $('#studioClose').onclick = () => { sheet.hidden = true; $('#studioBtn').setAttribute('aria-pressed', 'false'); };
+    $$('#studioTabs button').forEach(b => b.onclick = () => openSheet(b.dataset.tab));
     $('#bandDrums').onclick = () => this.toggleFree('drums'); $('#bandAcc').onclick = () => this.toggleFree('acc'); $('#bandStop').onclick = () => this.stopFree();
     $('#musicFile').onchange = e => { const f = e.target.files[0]; if (f) Music.load(f); e.target.value = ''; }; $('#musicPlay').onclick = () => Music.play(); $('#musicStop').onclick = () => Music.stop();
     $('#fallDrums').onclick = () => { this.fallDrums = !this.fallDrums; $('#fallDrums').setAttribute('aria-pressed', String(this.fallDrums)); if (!this.fallDrums && !this.fallAcc) Band.stop(); if (Fall.playing && !Fall.paused) this.startForSong(Fall.song, Fall.t0, Fall.song.bpm * Fall.speed, Fall.loop); };
