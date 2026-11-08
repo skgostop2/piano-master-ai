@@ -179,8 +179,25 @@ body.fallmode #fallWrap{border-bottom:0;border-radius:var(--radius) var(--radius
 .libitem .meta{color:var(--muted);font-size:.85em;white-space:nowrap}
 .fall-more{display:none}
 @media (max-width:700px),(max-height:480px){ .fall-more{display:inline-flex} #s-fall:not(.open) .fall-opt{display:none!important} } /* 좁은 화면: 옵션 접기 */
+/* 도움말 */
+details.help{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius)}
+details.help>summary{cursor:pointer;padding:14px 16px;font-weight:700;font-size:1.08em;list-style:none;display:flex;justify-content:space-between;gap:8px}
+details.help>summary::-webkit-details-marker{display:none}
+details.help>summary::after{content:"＋";color:var(--accent);font-weight:900}
+details.help[open]>summary::after{content:"－"}
+details.help .hb{padding:0 16px 14px;max-width:72ch}
+details.help .hb li{margin:6px 0}
+details.help .hb ul ul{margin-top:4px}
+details.help code{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:0 5px;font-size:.92em;white-space:nowrap}
+details.help mark{background:var(--key-down);color:#1d1a16;border-radius:3px}
+#helpMemo{width:100%;margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg2);color:var(--fg);font:inherit;resize:vertical}
 #noteReadout{min-width:120px;font-weight:700;font-variant-numeric:tabular-nums}
 @media (max-width:700px){
+  header.bar{flex-wrap:wrap;row-gap:6px;column-gap:8px}
+  header.bar .brand{flex:1 1 auto;font-size:.98em;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header.bar .pill{max-width:96px;overflow:hidden;text-overflow:ellipsis;font-size:.72em}
+  header.bar .icon-btn{width:36px;height:36px}
+  nav.tabs{order:5;flex:1 1 100%}
   body{font-size:16px}
   #kb{--kb-h:160px}
   .brand{font-size:1.05em}
@@ -221,6 +238,7 @@ body.fallmode #fallWrap{border-bottom:0;border-radius:var(--radius) var(--radius
     <button data-screen="stats">통계·설정</button>
   </nav>
   <span class="pill" id="midiPill" title="MIDI 연결 상태">MIDI 없음</span>
+  <button class="icon-btn" id="helpBtn" title="도움말" aria-label="도움말">❓</button>
   <button class="icon-btn" id="themeBtn" title="다크/라이트 전환" aria-label="테마 전환">◐</button>
 </header>
 
@@ -240,6 +258,10 @@ body.fallmode #fallWrap{border-bottom:0;border-radius:var(--radius) var(--radius
           <button class="btn" data-go="piano">자유 연주</button>
         </div>
       </div>
+    </div>
+    <div class="card" id="firstHelp" hidden>
+      <div class="row between"><div><h3>처음 오셨나요?</h3><p class="muted">소리 켜기, 아이폰 무음 스위치, 홈 화면에 설치하는 법, 화면별 사용법이 도움말에 정리되어 있습니다.</p></div>
+        <div class="row"><button class="btn primary" id="firstHelpOpen">❓ 도움말 보기</button><button class="btn" id="firstHelpClose">닫기</button></div></div>
     </div>
     <div class="grid">
       <div class="card"><div class="muted small">오늘 연습</div><div class="stat num" id="hToday">0분</div></div>
@@ -394,7 +416,7 @@ body.fallmode #fallWrap{border-bottom:0;border-radius:var(--radius) var(--radius
         <div class="seg" id="sheetHand"><button data-v="both" aria-pressed="true">양손</button><button data-v="rh">오른손</button><button data-v="lh">왼손</button></div>
         <label class="f small">반복 마디 <input type="number" id="sheetLoopA" min="1" value="1" style="width:64px;min-height:36px">~<input type="number" id="sheetLoopB" min="1" value="1" style="width:64px;min-height:36px"> <input type="checkbox" id="sheetLoopOn"></label>
         <div class="seg"><button id="sheetZoomOut">－</button><button id="sheetZoomIn">＋</button></div>
-        <label class="btn sm primary" for="photoCam">📷 악보 사진 찍기</label><input type="file" id="photoCam" accept="image/*" capture="environment" hidden><label class="btn sm" for="photoPick">🖼 사진 고르기</label><input type="file" id="photoPick" accept="image/*" hidden>
+        <label class="btn sm primary" for="photoCam">📷 악보 사진 찍기</label><input type="file" id="photoCam" accept="image/*" capture="environment" hidden><label class="btn sm" for="photoPick">🖼 사진 고르기</label><input type="file" id="photoPick" accept="image/*" hidden><button class="btn sm" data-help="help-sheet" title="사진 등록 도움말">❓</button>
         <label class="btn sm" for="sheetFile">악보 파일 (MusicXML/MIDI)</label><input type="file" id="sheetFile" accept=".xml,.musicxml,.mxl,.mid,.midi" hidden>
         <button class="btn sm toggle" id="sheetEditBtn" aria-pressed="false">음표 직접 입력</button>
       </div>
@@ -552,6 +574,166 @@ body.fallmode #fallWrap{border-bottom:0;border-radius:var(--radius) var(--radius
     </div>
   </div>
 </section>
+<!-- 9. 도움말 -->
+<section class="screen" id="s-help">
+  <div class="stack">
+    <div class="card accent">
+      <div class="row between">
+        <div><h2>❓ 도움말</h2><p class="muted">궁금한 항목을 누르면 펼쳐집니다. 찾는 말을 입력하면 해당 항목만 보여 줍니다.</p></div>
+        <div class="row"><input type="text" id="helpSearch" placeholder="예: 소리, 사진, 무음, MIDI" aria-label="도움말 검색" style="width:220px"><button class="btn sm" id="helpOpenAll">모두 펼치기</button></div>
+      </div>
+      <p class="muted small" id="helpNoMatch" hidden>찾는 말이 들어간 항목이 없습니다. 다른 말로 찾아보세요.</p>
+    </div>
+
+    <details class="help" id="help-start" open><summary>처음 시작하기</summary><div class="hb">
+      <ol>
+        <li>앱을 열면 가운데 <b class="ui">🔊 소리 켜고 시작하기</b> 버튼을 누릅니다. 브라우저 규칙상 화면을 한 번 눌러야 소리가 켜집니다. 도·미·솔 소리가 나면 정상입니다.</li>
+        <li><b>아이폰</b>은 왼쪽 옆면 무음 스위치(주황색이 보이면 무음)를 끄고 음량을 올리세요. 무음이면 소리가 나지 않습니다.</li>
+        <li>화면 아래 건반을 누르면 소리가 납니다. 여러 손가락으로 동시에 눌러 화음을 칠 수 있습니다.</li>
+        <li>처음에는 <b class="ui">기초 학습</b>의 1단계부터 차례로 하면 됩니다. 악보를 몰라도 됩니다.</li>
+        <li>휴대폰은 <b>가로로 돌려서</b> 쓰면 건반과 음표가 넓게 보여 훨씬 편합니다.</li>
+      </ol>
+    </div></details>
+
+    <details class="help" id="help-install"><summary>휴대폰 홈 화면에 앱처럼 설치하기</summary><div class="hb">
+      <ul>
+        <li><b>아이폰(사파리)</b>: 아래 가운데 공유 버튼(네모에 위 화살표) → <b>홈 화면에 추가</b> → 추가.</li>
+        <li><b>안드로이드(크롬)</b>: 오른쪽 위 ⋮ 메뉴 → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>.</li>
+        <li>설치하면 주소창 없이 전체 화면으로 열리고, 한 번 연 뒤에는 인터넷이 없어도 연습할 수 있습니다.</li>
+        <li>클로드 앱 안에서 연 화면은 설치되지 않습니다. 설치는 공유받은 인터넷 주소로 열었을 때만 됩니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-screens"><summary>화면 구성과 메뉴</summary><div class="hb">
+      <ul>
+        <li>맨 위 메뉴: <b class="ui">홈</b> · <b class="ui">피아노</b> · <b class="ui">기초 학습</b> · <b class="ui">떨어지는 음표</b> · <b class="ui">악보</b> · <b class="ui">통계·설정</b>. 오른쪽 <b class="ui">◐</b>는 밝은/어두운 화면 전환, <b class="ui">❓</b>는 이 도움말입니다.</li>
+        <li><b class="ui">코드·스케일</b>과 <b class="ui">AI 평가</b> 메뉴는 처음에는 숨겨져 있습니다. <b class="ui">통계·설정</b> → <b class="ui">수준</b>을 <b class="ui">중급(모든 메뉴)</b>으로 바꾸면 나타납니다.</li>
+        <li>맨 위 오른쪽 <b>MIDI</b> 표시는 디지털 피아노 연결 상태입니다(미지원·없음·연결된 피아노 이름).</li>
+        <li>화면 아래 건반 바로 위 줄(도구줄): <b class="ui">🎛 소리</b>(음색·잔향·드럼 등), <b class="ui">◀ 옥타브</b> / <b class="ui">옥타브 ▶</b>(건반 좌우 이동), <b class="ui">서스테인</b>(페달), <b class="ui">건반 −</b> / <b class="ui">건반 ＋</b>(건반 폭), 맨 오른쪽 오디오 상태 표시.</li>
+        <li>오디오 상태 표시(<b>오디오 켜짐</b>)를 누르면 소리를 다시 켜고 시험음을 냅니다. 소리가 안 날 때 먼저 눌러 보세요.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-piano"><summary>피아노 화면 · 소리 바꾸기 · 드럼과 반주</summary><div class="hb">
+      <ul>
+        <li><b>연주</b>: 화면 건반을 누르거나, PC는 키보드 아래 줄 <b>Z S X D C V G B H N J M</b>(도~시)와 위 줄 <b>Q 2 W 3 E R 5 T 6 Y 7 U I</b>(한 옥타브 위)로 칩니다. <b>[ ]</b> 키로 옥타브, <b>Space</b>로 서스테인.</li>
+        <li><b class="ui">● 녹음</b>을 누르고 연주한 뒤 다시 누르면 저장되고, <b class="ui">▶ 녹음 재생</b>으로 들어볼 수 있습니다.</li>
+        <li><b class="ui">음이름 표시</b>를 끄면 건반의 도·레·미 글자가 사라집니다.</li>
+        <li><b>메트로놈</b>: BPM(30~240), 박자, 소리를 고르고 <b class="ui">▶ 시작</b>. <b class="ui">카운트인</b>은 시작 전에 한 마디를 세 주고, <b class="ui">자동 증가</b>에 숫자를 넣으면 8마디마다 그만큼 빨라집니다.</li>
+        <li><b class="ui">🎛 소리</b>를 누르면 건반 위에 판이 열립니다. 탭이 세 개입니다.
+          <ul>
+            <li><b class="ui">🎛 소리</b>: 음색 목록(<b class="ui">그랜드(녹음)</b>은 실제 피아노 녹음, <b class="ui">그랜드(합성)</b>은 컴퓨터로 만든 소리)은 위아래로 굴리거나 항목을 누릅니다. 잔향·밝기·두께·울림 길이·스테레오 폭·음량은 세로 막대를 위아래로 끌거나 아래 <b>− / ＋</b>로 조절합니다. 숫자를 두 번 누르면 처음 값으로 돌아갑니다.</li>
+            <li><b class="ui">🥁 드럼·반주</b>: 드럼 패턴·코드 진행·템포를 고르고 <b class="ui">🥁 드럼</b>, <b class="ui">🎸 반주</b>를 켜면 밴드가 반주합니다. 그 위에 자유롭게 연주하세요.</li>
+            <li><b class="ui">🎵 음악 파일</b>: 휴대폰에 있는 노래 파일을 골라 배경으로 틀고 속도·음량을 조절합니다. 파일은 기기 밖으로 나가지 않습니다.</li>
+          </ul></li>
+        <li>실제 피아노 녹음은 처음 한 번 약 2MB를 받습니다. 받는 동안에는 합성음으로 나오고, 다 받으면 오디오 표시가 <b>실제 피아노 음원</b>으로 바뀝니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-lesson"><summary>기초 학습 (10단계)</summary><div class="hb">
+      <ul>
+        <li>건반 구조 → 도레미 → 오른손 → 왼손 → 멜로디 → 악보 읽기 → 양손 → 코드 → 리듬 → 실제 곡 순서입니다. 앞 단계를 마쳐야 다음 단계가 열립니다.</li>
+        <li>단계 카드를 누르고 설명을 읽은 뒤 <b class="ui">🔊 시범 연주</b>로 들어보고, <b class="ui">연습 시작</b>을 누르면 칠 건반이 색으로 표시됩니다(주황 = 오른손, 파랑 = 왼손).</li>
+        <li>틀리면 빨간색으로 표시되고 "더 오른쪽(높은 음)" 같은 안내가 나옵니다. 어렵다면 <b class="ui">속도</b>를 50%로 낮추세요.</li>
+        <li>한 단계 안에 연습이 여러 개 있습니다. <b class="ui">다음 연습 ▶</b>으로 넘어가고, 모두 별 1개 이상 받으면 <b class="ui">단계 완료 → 다음 단계</b> 버튼이 나타납니다.</li>
+        <li>같은 음을 여러 번 틀리면 아래 <b class="ui">자주 틀리는 음</b>에 모입니다. 누르면 그 음만 집중 연습합니다.</li>
+        <li>9단계(리듬)는 메트로놈 소리와 동시에 눌러야 정답입니다(앞뒤 0.2초 안).</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-fall"><summary>떨어지는 음표</summary><div class="hb">
+      <ul>
+        <li>곡을 고르고 <b class="ui">▶ 재생</b>을 누르면 2.5초 뒤 위에서 막대가 내려옵니다. 막대가 <b>금색 선</b>에 닿을 때 바로 아래 건반을 누르세요. 막대 길이가 누르고 있을 시간입니다.</li>
+        <li>음표가 내려오는 영역의 세로 줄은 건반과 이어져 있습니다. 회색 띠가 검은 건반 자리입니다.</li>
+        <li><b class="ui">정답 대기</b>를 켜면 맞는 건반을 누를 때까지 멈춰서 기다립니다. 처음 배우는 곡은 이걸 켜고 하세요.</li>
+        <li><b class="ui">자동 시범</b>은 프로그램이 대신 쳐 줍니다. <b class="ui">🥁</b>와 <b class="ui">🎸</b>는 드럼과 반주를 곡에 맞춰 같이 틀어 줍니다.</li>
+        <li>속도는 <b class="ui">25%</b>~<b class="ui">100%</b>, 손은 <b class="ui">양손</b>/<b class="ui">오른손</b>/<b class="ui">왼손</b>을 고를 수 있고, <b class="ui">반복 마디</b>에 마디 번호를 넣고 체크하면 그 구간만 반복합니다.</li>
+        <li>휴대폰처럼 좁은 화면에서는 위 옵션들이 <b class="ui">⚙ 옵션</b> 버튼 안에 접혀 있습니다.</li>
+        <li>끝까지 치면 점수가 나오고, 자세한 결과는 <b class="ui">AI 평가</b> 화면에 저장됩니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-sheet"><summary>악보 화면 · 악보 사진으로 곡 등록</summary><div class="hb">
+      <ul>
+        <li>곡을 고르고 <b class="ui">▶ 시범 재생</b>을 누르면 오선지의 음표가 순서대로 강조되며 건반에도 표시됩니다. <b class="ui">연습(채점)</b>은 카운트인 뒤 직접 쳐서 점수를 받습니다.</li>
+        <li><b class="ui">📷 악보 사진 찍기</b>(카메라) 또는 <b class="ui">🖼 사진 고르기</b>(앨범)를 누르면 사진에서 음표를 읽습니다. 인터넷이나 AI 없이 휴대폰 안에서 1초 안에 끝납니다.</li>
+        <li>읽고 나면 <b class="ui">악보 확인 · 수정</b> 칸이 열립니다. 사진 위에 읽은 음표가 동그라미와 음이름으로 표시되니 맞는지 비교하고, <b class="ui">🔊 들어보기</b>로 소리를 확인하세요.</li>
+        <li>틀린 음은 아래 글자 칸에서 고칩니다. 형식은 <code>음이름/박자</code>입니다. 예: <code>C4/1</code>(4분음표 도), <code>E4/2</code>(2분음표 미), <code>G4/0.5</code>(8분음표 솔), <code>R/1</code>(4분 쉼표), <code>C4+E4+G4/1</code>(동시에 누르는 화음), <code>F#4/1</code>(파 샵), <code>Bb4/1</code>(시 플랫). 왼손은 둘째 줄에 <code>L:</code>을 쓰고 이어서 적습니다. 가운데 도가 C4입니다.</li>
+        <li>고친 뒤 <b class="ui">✓ 고친 내용 악보에 반영</b> → <b class="ui">💾 내 곡에 저장</b>. 제목·템포·박자도 이 칸에서 바꿀 수 있습니다.</li>
+        <li>큰보표(위 오른손·아래 왼손)를 한 줄 악보로 잘못 읽으면 <b class="ui">오선 종류</b>를 바꿔 다시 읽게 하세요.</li>
+        <li><b>사진 인식이 읽는 것</b>: 음 높이, 4분·2분·온·8분·16분음표, 점음표, 조표(♯·♭ 개수), 임시표 ♯·♭·♮, 마디선. <b>못 읽는 것</b>: 쉼표 기호(마디 안 빈 박으로 채움), 셋잇단음표, 이음줄, 손글씨, 여러 페이지.</li>
+        <li><b>잘 찍는 법</b>: 인쇄 악보를 밝은 곳에서 평평하게 펴고 정면에서, 한 장씩, 오선이 화면 가로를 채우도록 가까이 찍으세요.</li>
+        <li>컴퓨터용 악보 파일(<b class="ui">악보 파일 (MusicXML/MIDI)</b>)이 있으면 사진보다 정확합니다. MuseScore(musescore.com)나 Mutopia Project(mutopiaproject.org)에서 무료로 받을 수 있습니다.</li>
+        <li><b class="ui">음표 직접 입력</b>을 누르면 글자로 악보를 쓰거나, <b class="ui">건반으로 입력(메트로놈 맞춰 연주)</b>으로 직접 친 것을 악보로 만들 수 있습니다.</li>
+        <li><b class="ui">📚 내 곡 목록</b>에서 이름을 바로 고칠 수 있고, <b class="ui">수정</b>, <b class="ui">삭제</b>(한 번 더 눌러 확인)를 할 수 있습니다. 저장한 곡은 떨어지는 음표와 AI 평가에서도 고를 수 있습니다.</li>
+        <li>설정에 본인 AI API 키를 넣으면 확인 칸에 <b class="ui">🤖 AI로 다시 읽기</b> 버튼이 생깁니다(유료, 선택 사항).</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-chord"><summary>코드·스케일 (중급 메뉴)</summary><div class="hb">
+      <ul>
+        <li><b class="ui">근음</b>(예: C 도), <b class="ui">종류</b>(메이저·마이너·7th·음계 등), <b class="ui">옥타브</b>를 고르면 건반에 해당 음이 표시됩니다.</li>
+        <li><b class="ui">🔊 들어보기</b>로 소리를 듣고, <b class="ui">연습(한 음씩)</b>은 표시된 순서대로, <b class="ui">연습(동시에)</b>는 모든 음을 한꺼번에 누르는 연습입니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-eval"><summary>AI 평가 · 점수 계산 방법 (중급 메뉴)</summary><div class="hb">
+      <ul>
+        <li>곡과 속도를 고르고 <b class="ui">평가 시작</b> → 카운트인(한 마디) 뒤 연주 → 다 치면 자동으로 끝나고, 중간에 끝내려면 <b class="ui">연주 끝</b>.</li>
+        <li><b>음정 정확도</b>: 악보의 음 중 맞게 누른 비율. 악보에 없는 음을 많이 누르면 깎입니다.</li>
+        <li><b>리듬 정확도</b>: 맞게 누른 음이 정확한 때에서 얼마나 벗어났는지. 딱 맞으면 100%, 0.3초 어긋나면 0%.</li>
+        <li><b>음표 길이</b>: 누르고 있던 시간이 악보 길이와 얼마나 비슷한지.</li>
+        <li><b>종합 점수</b> = 음정 50% + 리듬 30% + 길이 20%. 같은 음을 두 번 이상 놓치거나 한 마디에서 두 번 이상 틀리면 <b>반복 실수</b>로 알려 줍니다.</li>
+        <li>항상 늦게(또는 빠르게) 나온다고 하면 <b class="ui">지연 보정 측정</b>을 눌러 메트로놈에 맞춰 8번 누르세요. 기기 지연을 재서 점수에 반영합니다.</li>
+        <li>아래 <b class="ui">AI 개인교사</b>가 결과에 맞는 연습 방법(속도 낮추기, 메트로놈 연습, 반복 구간 등)을 알려 줍니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-midi"><summary>디지털 피아노(MIDI) 연결 · 마이크로 실제 피아노 소리 인식</summary><div class="hb">
+      <ul>
+        <li><b>MIDI</b>: USB 단자가 있는 디지털 피아노를 USB 케이블로 연결하고 <b class="ui">통계·설정</b> → <b class="ui">MIDI 장치 검색</b>. 연결되면 맨 위에 피아노 이름이 표시되고, 누르는 세기와 서스테인 페달도 인식합니다.</li>
+        <li>MIDI가 되는 곳: PC·안드로이드의 크롬, 엣지, 오페라. <b>아이폰·아이패드(사파리)와 파이어폭스는 안 됩니다</b>(브라우저가 지원하지 않음). 이 경우 화면 건반이나 마이크를 쓰세요.</li>
+        <li><b>마이크</b>: <b class="ui">AI 평가</b> 화면 아래 <b class="ui">🎤 마이크 켜기</b>. 실제 피아노를 한 음씩 치면 음 이름이 표시됩니다. 화음은 인식하지 않고, 확실하지 않으면(신뢰도 90% 미만) 판정하지 않습니다.</li>
+        <li>클로드 앱 안에서 연 화면은 마이크가 막혀 있습니다. 공유받은 인터넷 주소로 열면 됩니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-stats"><summary>통계 · 설정 · 기록 저장</summary><div class="hb">
+      <ul>
+        <li>연습 시간은 건반을 누르는 동안만 셉니다. 7일/30일 그래프, 연속 학습일, 단계 진도, 자주 틀리는 구간, 최근 기록을 볼 수 있습니다.</li>
+        <li>설정: 이름, 수준(초급/중급), 음색, 음량, <b class="ui">큰 글씨</b>, 건반 너비(PC·휴대폰 따로), 입력 지연 보정.</li>
+        <li><b>기록은 이 기기의 이 브라우저에만 저장</b>됩니다. 로그인이 필요 없는 대신 다른 휴대폰과는 공유되지 않고, 브라우저의 방문 기록·사이트 데이터를 지우면 함께 지워집니다.</li>
+        <li><b class="ui">데이터 내보내기(복사)</b>로 기록을 글자로 복사해 보관할 수 있습니다. <b class="ui">학습 기록 초기화</b>는 한 번 더 확인한 뒤 모든 기록을 지웁니다.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-faq"><summary>문제가 생겼을 때</summary><div class="hb">
+      <ul>
+        <li><b>소리가 안 나요</b>: ① 아이폰 무음 스위치 끄기 ② 음량 올리기 ③ 블루투스 이어폰 연결 확인 ④ 화면 아래 오디오 표시를 눌러 시험음 듣기 ⑤ 그래도 안 되면 페이지를 새로고침하고 <b class="ui">🔊 소리 켜고 시작하기</b>를 다시 누르기.</li>
+        <li><b>새 기능이 안 보여요</b>: 페이지를 새로고침하세요. "새 버전이 준비됐습니다"가 나오면 한 번 더 새로고침합니다. 아이폰에서 계속 옛 화면이면 설정 → Safari → 고급 → 웹사이트 데이터에서 이 사이트를 지우고 다시 여세요(기록도 함께 지워집니다).</li>
+        <li><b>음표와 건반 위치가 헷갈려요</b>: 가로로 돌려 쓰고, <b class="ui">건반 ＋</b>로 건반을 넓히세요. 곡을 고르면 쓰는 건반 쪽으로 자동으로 이동합니다.</li>
+        <li><b>소리가 늦게 나요</b>: 블루투스 이어폰은 0.1~0.3초 늦습니다. 유선 이어폰이나 기기 스피커를 쓰고, 점수는 <b class="ui">지연 보정 측정</b>으로 맞추세요.</li>
+        <li><b>사진 인식이 많이 틀려요</b>: 더 밝게, 정면에서, 가까이 다시 찍거나 <b class="ui">오선 종류</b>를 바꿔 보세요. 남은 틀린 음은 글자 칸에서 고치면 됩니다.</li>
+        <li><b>메뉴가 몇 개 안 보여요</b>: <b class="ui">통계·설정</b> → <b class="ui">수준</b>을 <b class="ui">중급(모든 메뉴)</b>으로.</li>
+      </ul>
+    </div></details>
+
+    <details class="help" id="help-credits"><summary>음원 · 곡 저작권</summary><div class="hb">
+      <ul>
+        <li>피아노 녹음: Salamander Grand Piano V3 (녹음 Alexander Holm, CC BY 3.0).</li>
+        <li>기본 곡: 앱에서 직접 만든 연습곡 8곡과, 저작권이 끝난 곡 7곡(반짝반짝 작은 별·환희의 송가·메리의 어린 양·런던 다리·징글벨 후렴·엘리제를 위하여 앞부분·미뉴에트 G장조 앞부분)을 앱에 맞게 쉽게 편곡한 것입니다.</li>
+        <li>사진으로 등록하는 악보는 본인이 가진 악보만 쓰세요. 등록한 곡은 이 기기에만 저장되고 다른 곳으로 보내지지 않습니다.</li>
+      </ul>
+    </div></details>
+
+    <div class="card">
+      <div class="row between"><h3>📝 내 메모</h3><span class="muted small" id="helpMemoState"></span></div>
+      <p class="muted small">연습 요령이나 기억할 것을 자유롭게 적어 두세요. 이 기기에 자동으로 저장되고, 앱이 새 버전으로 바뀌어도 그대로 남습니다.</p>
+      <textarea id="helpMemo" rows="5" placeholder="예: 엘리제를 위하여는 50% 속도 + 정답 대기로 시작"></textarea>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <!-- 소리·반주 시트 (건반 위, 모든 화면에서 열림) -->
@@ -1371,7 +1553,7 @@ const App = {
   audioPill() { const p = $('#audioPill'); p.textContent = Audio.status(); p.classList.toggle('on', !!(Audio.ctx && Audio.ctx.state === 'running')); },
   go(name) {
     this.screen = name; $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + name)); $$('#tabs button').forEach(b => { if (b.dataset.screen === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-    const main = $('#main'); main.classList.toggle('tight', name === 'fall'); document.body.classList.toggle('fallmode', name === 'fall'); $('#dock').hidden = name === 'stats';
+    const main = $('#main'); main.classList.toggle('tight', name === 'fall'); document.body.classList.toggle('fallmode', name === 'fall'); $('#dock').hidden = name === 'stats' || name === 'help'; $('#studioSheet').hidden = $('#studioSheet').hidden || name === 'help'; $('#helpBtn').setAttribute('aria-pressed', String(name === 'help'));
     if (name !== 'fall') Fall.stop(); if (name !== 'sheet') Sheet.stop(); if (name !== 'lesson') Lesson.stop(); if (name !== 'chord') Chord.stopPractice(); if (name !== 'eval') { Eval.stop(); if (Mic.on) Mic.stop(); }
     Keyboard.clearHints(); if (name === 'home') { UI.refreshHome(); UI.reco(); } if (name === 'stats') Stats.render(); if (name === 'fall') setTimeout(() => { Fall.resize(); Fall.fitKeys(); }, 30); if (name === 'sheet' && Sheet.song) Staff.render(Sheet.song, -1); if (name === 'chord') Chord.show(); if (name === 'lesson' && $('#lessonPanel').hidden) Lesson.renderList();
     document.documentElement.style.setProperty('--dock-h', $('#dock').hidden ? '0px' : $('#dock').offsetHeight + 'px'); try { main.scrollTop = 0; } catch (e) { }
@@ -1382,7 +1564,7 @@ const App = {
     $$('#tabs button').forEach(b => b.onclick = () => this.go(b.dataset.screen)); $$('[data-go]').forEach(b => b.onclick = () => this.go(b.dataset.go));
     $('#homeContinue').onclick = () => Lesson.open(Math.min(10, S.progress.current));
     const testTone = () => { Audio.play(60, Audio.now() + .05, .4, .6); Audio.play(64, Audio.now() + .25, .4, .6); Audio.play(67, Audio.now() + .45, .7, .6); };
-    $('#startBtn').onclick = async () => { $('#startBtn').textContent = '오디오 켜는 중…'; const ok = await this.ensureAudio(); $('#startOverlay').hidden = true; if (ok) testTone(); else toast('오디오를 켜지 못했습니다. iPhone은 무음 스위치를 끄고, 음량을 올린 뒤 아래 "오디오" 표시를 눌러 다시 시도하세요.', 5000); const isMobile = window.innerWidth < 700; setTimeout(() => Keyboard.scrollTo(isMobile ? (S.settings.mobileOct + 1) * 12 + 7 : 60, false), 50); MIDI.connect(false); };
+    $('#startBtn').onclick = async () => { $('#startBtn').textContent = '오디오 켜는 중…'; const ok = await this.ensureAudio(); $('#startOverlay').hidden = true; $('#startBtn').textContent = '🔊 소리 켜고 시작하기'; if (ok) testTone(); else toast('오디오를 켜지 못했습니다. iPhone은 무음 스위치를 끄고, 음량을 올린 뒤 아래 "오디오" 표시를 눌러 다시 시도하세요.', 5000); const isMobile = window.innerWidth < 700; setTimeout(() => Keyboard.scrollTo(isMobile ? (S.settings.mobileOct + 1) * 12 + 7 : 60, false), 50); MIDI.connect(false); };
     $('#audioPill').style.cursor = 'pointer'; $('#audioPill').title = '누르면 오디오를 다시 켜고 테스트음을 냅니다';
     $('#audioPill').onclick = async () => { const ok = await this.ensureAudio(); if (ok) { testTone(); toast(`오디오 작동 중 (${Audio.ctx.sampleRate}Hz${Sampler.status()}). 소리가 안 들리면 기기 음량·무음 스위치·이어폰 연결을 확인하세요.`, 4000); } else toast('오디오를 켜지 못했습니다: 상태 ' + (Audio.ctx ? Audio.ctx.state : '없음'), 4000); };
     document.addEventListener('visibilitychange', () => { if (!document.hidden && Audio.ctx && Audio.ctx.state !== 'running') this.ensureAudio(); });
@@ -1859,8 +2041,26 @@ const AIRead = {
   }
 };
 
+/* ========== 도움말 ========== */
+const Help = {
+  init() {
+    $('#helpBtn').onclick = () => this.open(); $$('[data-help]').forEach(b => b.onclick = () => this.open(b.dataset.help));
+    $('#firstHelp').hidden = !!S.settings.helpSeen; $('#firstHelpOpen').onclick = () => this.open('help-start'); $('#firstHelpClose').onclick = () => { S.settings.helpSeen = true; Store.save(); $('#firstHelp').hidden = true; };
+    const all = $$('#s-help details.help'); let openAll = false;
+    $('#helpOpenAll').onclick = () => { openAll = !openAll; all.forEach(d => d.open = openAll); $('#helpOpenAll').textContent = openAll ? '모두 접기' : '모두 펼치기'; };
+    $('#helpSearch').oninput = e => { const q = e.target.value.trim().toLowerCase(); let n = 0; all.forEach(d => { const hit = !q || d.textContent.toLowerCase().includes(q); d.hidden = !hit; if (q && hit) { d.open = true; n++; } }); if (!q) all.forEach((d, i) => d.open = i === 0); $('#helpNoMatch').hidden = !q || n > 0; };
+    const memo = $('#helpMemo'); memo.value = S.settings.helpMemo || ''; let tm = 0;
+    memo.oninput = () => { clearTimeout(tm); $('#helpMemoState').textContent = '입력 중…'; tm = setTimeout(() => { S.settings.helpMemo = memo.value; Store.save(); const d = new Date(); $('#helpMemoState').textContent = `저장됨 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; }, 600); };
+  },
+  open(id) {
+    S.settings.helpSeen = true; Store.save(); $('#firstHelp').hidden = true; App.go('help');
+    $('#helpSearch').value = ''; $$('#s-help details.help').forEach(d => { d.hidden = false; }); $('#helpNoMatch').hidden = true;
+    if (id) { const d = document.getElementById(id); if (d) { d.open = true; setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50); } }
+  }
+};
+
 /* ---- 부팅 ---- */
-let _booted = false; const boot = () => { if (_booted) return; _booted = true; try { App.init(); Studio.init(); Library.init(); } catch (e) { console.error('init failed', e); } };
+let _booted = false; const boot = () => { if (_booted) return; _booted = true; try { App.init(); Studio.init(); Library.init(); Help.init(); } catch (e) { console.error('init failed', e); } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
 </script>
