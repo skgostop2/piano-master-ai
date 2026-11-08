@@ -1350,7 +1350,7 @@ const App = {
     ['pointerdown', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, () => { if (!$('#startOverlay').hidden) return; this.ensureAudio(); }, { passive: true }));
     this.go('home'); document.documentElement.style.setProperty('--dock-h', $('#dock').offsetHeight + 'px');
     // PWA
-    if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.includes('claude')) navigator.serviceWorker.register('./sw.js').catch(() => { });
+    if ('serviceWorker' in navigator && location.protocol === 'https:' && !location.hostname.includes('claude')) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => { reg.update().catch(() => { }); reg.addEventListener('updatefound', () => { const nw = reg.installing; nw && nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) toast('새 버전이 준비됐습니다. 새로고침하면 적용됩니다.', 5000); }); }); }).catch(() => { });
   }
 };
 
