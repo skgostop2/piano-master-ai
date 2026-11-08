@@ -133,6 +133,11 @@ canvas.staff{display:block;max-width:100%}
 #dock{flex:0 0 auto;background:var(--bg2);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);user-select:none;-webkit-user-select:none}
 #dock .tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));font-size:.9em}
 #dock .tools .grow{flex:1 1 auto}
+/* 떨어지는 음표 화면: 버튼 줄을 건반 아래로 → 금색 선 바로 밑이 건반 */
+body.fallmode #dock{display:flex;flex-direction:column}
+body.fallmode #dock .tools{order:2;border-top:1px solid var(--line)}
+body.fallmode #kbScroll{order:1}
+body.fallmode #fallWrap{border-bottom:0;border-radius:var(--radius) var(--radius) 0 0}
 #kbScroll{overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;touch-action:pan-x;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 #kb{position:relative;height:var(--kb-h,170px);display:flex;width:max-content;touch-action:none}
 .key{position:relative;flex:0 0 auto;border-radius:0 0 6px 6px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;font-size:.75em;font-weight:700;color:#777;cursor:pointer}
@@ -1045,8 +1050,9 @@ const Scoring = {
 /* ========== 떨어지는 음표 ========== */
 const Fall = {
   song: null, speed: 1, hand: 'both', playing: false, t0: 0, pauseAt: 0, paused: false, wait: false, auto: false, raf: 0, notes: [], hits: 0, miss: 0, extra: 0, events: [], off: null, loop: null, pps: 160, canvas: null, ctx: null, lastBeat: -1, waitingFor: null, scheduled: new Set(),
-  init() { this.canvas = $('#fallCanvas'); this.ctx = this.canvas.getContext('2d'); const sel = $('#fallSong'); SONGS.forEach(s => sel.add(new Option(s.title, s.id))); this.load(sel.value); sel.onchange = () => this.load(sel.value); new ResizeObserver(() => this.resize()).observe($('#fallWrap')); $('#kbScroll').addEventListener('scroll', () => { if (!this.playing) this.draw(); }); },
-  load(id) { this.stop(); this.song = songById(id); $('#fallLoopB').value = songMeasures(this.song); $('#fallLoopB').max = $('#fallLoopA').max = songMeasures(this.song); this.prep(); this.draw(); },
+  init() { this.canvas = $('#fallCanvas'); this.ctx = this.canvas.getContext('2d'); const sel = $('#fallSong'); SONGS.forEach(s => sel.add(new Option(s.title, s.id))); this.load(sel.value); sel.onchange = () => this.load(sel.value); new ResizeObserver(() => this.resize()).observe($('#fallWrap')); $('#kbScroll').addEventListener('scroll', () => { if (!this.playing || this.paused) this.draw(); }); },
+  load(id) { this.stop(); this.song = songById(id); $('#fallLoopB').value = songMeasures(this.song); $('#fallLoopB').max = $('#fallLoopA').max = songMeasures(this.song); this.prep(); this.draw(); this.fitKeys(); },
+  fitKeys() { const ms = this.notes.map(n => n.m); if (ms.length) Keyboard.scrollToRange(Math.min(...ms), Math.max(...ms)); }, // 곡 음역이 화면 가운데 오도록
   prep() { const spb = 60 / (this.song.bpm * this.speed); this.notes = this.song.notes.filter(n => this.hand === 'both' || n.h === this.hand).map(n => ({ ...n, t: n.s * spb, dur: n.d * spb, state: '' })); this.hits = this.miss = this.extra = 0; this.events = []; this.scheduled.clear(); this.score(); },
   resize() { const w = $('#fallWrap'); const dpr = Math.min(2, window.devicePixelRatio || 1); this.canvas.width = w.clientWidth * dpr; this.canvas.height = w.clientHeight * dpr; this.canvas.style.width = w.clientWidth + 'px'; this.canvas.style.height = w.clientHeight + 'px'; this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); this.draw(); },
   curT() { if (!this.playing) return 0; if (this.paused) return this.pauseAt - this.t0; return Audio.now() - this.t0; },
@@ -1093,7 +1099,10 @@ const Fall = {
   finish() { const r = Scoring.evaluate(this.song, this.events, { speed: this.speed, latencyMs: 0, hand: this.hand }); this.stop(); if (!this.auto) { Stats.addSession(this.song, r, '떨어지는 음표'); toast(`완주! 음정 ${r.pitch}% · 리듬 ${r.rhythm}%`, 3000); Eval.showReport(r, this.song, true); } else toast('시범 연주 끝'); },
   draw(t = this.curT()) {
     const c = this.ctx, W = this.canvas.clientWidth, H = this.canvas.clientHeight; if (!W) return; const cs = getComputedStyle(document.documentElement);
-    c.clearRect(0, 0, W, H); const sl = $('#kbScroll').scrollLeft; const hitY = H - 6; const spb = 60 / (this.song.bpm * this.speed); const pps = this.pps;
+    c.clearRect(0, 0, W, H); const sl = this.canvas.getBoundingClientRect().left - $('#kb').getBoundingClientRect().left; /* 화면에 실제 보이는 건반 위치 기준(노치 여백·스크롤 포함) */ const hitY = H - 6; const spb = 60 / (this.song.bpm * this.speed); const pps = this.pps;
+    // 건반 레인: 검은 건반 자리는 음영, 흰 건반 경계는 가는 선 → 어느 건반으로 떨어지는지 바로 보이게
+    for (let m = 21; m <= 108; m++) { const k = Keyboard.keyX(m); if (!k) continue; const x = k.x - sl; if (x + k.w < 0 || x > W) continue; if (isBlack(m)) { c.fillStyle = cs.getPropertyValue('--line'); c.globalAlpha = .35; c.fillRect(x, 0, k.w, hitY); } else { c.fillStyle = cs.getPropertyValue('--line'); c.globalAlpha = .5; c.fillRect(Math.round(x), 0, 1, hitY); if (m === 60) { c.fillStyle = cs.getPropertyValue('--accent'); c.globalAlpha = .08; c.fillRect(x, 0, k.w, hitY); } } }
+    c.globalAlpha = 1;
     // 마디선
     c.strokeStyle = cs.getPropertyValue('--line'); c.lineWidth = 1; c.font = '12px ' + cs.getPropertyValue('--font-body'); c.fillStyle = cs.getPropertyValue('--muted');
     const beatsVisible = H / pps; const firstBeat = Math.floor(t / spb); for (let b = firstBeat; b < firstBeat + beatsVisible + 2; b++) { if (b < 0) continue; const y = hitY - (b * spb - t) * pps / spb; if (y < 0) break; c.globalAlpha = b % this.song.sig === 0 ? 1 : .35; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); if (b % this.song.sig === 0) c.fillText(`${b / this.song.sig + 1}마디`, 6, y - 4); }
@@ -1323,9 +1332,9 @@ const App = {
   audioPill() { const p = $('#audioPill'); p.textContent = Audio.status(); p.classList.toggle('on', !!(Audio.ctx && Audio.ctx.state === 'running')); },
   go(name) {
     this.screen = name; $$('.screen').forEach(s => s.classList.toggle('active', s.id === 's-' + name)); $$('#tabs button').forEach(b => { if (b.dataset.screen === name) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
-    const main = $('#main'); main.classList.toggle('tight', name === 'fall'); $('#dock').hidden = name === 'stats';
+    const main = $('#main'); main.classList.toggle('tight', name === 'fall'); document.body.classList.toggle('fallmode', name === 'fall'); $('#dock').hidden = name === 'stats';
     if (name !== 'fall') Fall.stop(); if (name !== 'sheet') Sheet.stop(); if (name !== 'lesson') Lesson.stop(); if (name !== 'chord') Chord.stopPractice(); if (name !== 'eval') { Eval.stop(); if (Mic.on) Mic.stop(); }
-    Keyboard.clearHints(); if (name === 'home') { UI.refreshHome(); UI.reco(); } if (name === 'stats') Stats.render(); if (name === 'fall') setTimeout(() => Fall.resize(), 30); if (name === 'sheet' && Sheet.song) Staff.render(Sheet.song, -1); if (name === 'chord') Chord.show(); if (name === 'lesson' && $('#lessonPanel').hidden) Lesson.renderList();
+    Keyboard.clearHints(); if (name === 'home') { UI.refreshHome(); UI.reco(); } if (name === 'stats') Stats.render(); if (name === 'fall') setTimeout(() => { Fall.resize(); Fall.fitKeys(); }, 30); if (name === 'sheet' && Sheet.song) Staff.render(Sheet.song, -1); if (name === 'chord') Chord.show(); if (name === 'lesson' && $('#lessonPanel').hidden) Lesson.renderList();
     document.documentElement.style.setProperty('--dock-h', $('#dock').hidden ? '0px' : $('#dock').offsetHeight + 'px'); try { main.scrollTop = 0; } catch (e) { }
   },
   init() {
@@ -1358,7 +1367,7 @@ const App = {
     // 떨어지는 음표
     $('#fallPlay').onclick = () => Fall.toggle(); $('#fallStop').onclick = () => Fall.stop();
     $$('#fallSpeed button').forEach(b => b.onclick = () => { $$('#fallSpeed button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); Fall.speed = parseFloat(b.dataset.v); Fall.stop(); Fall.prep(); Fall.draw(); });
-    $$('#fallHand button').forEach(b => b.onclick = () => { $$('#fallHand button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); Fall.hand = b.dataset.v; Fall.stop(); Fall.prep(); Fall.draw(); });
+    $$('#fallHand button').forEach(b => b.onclick = () => { $$('#fallHand button').forEach(x => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); Fall.hand = b.dataset.v; Fall.stop(); Fall.prep(); Fall.draw(); Fall.fitKeys(); });
     $('#fallWait').onclick = () => { Fall.wait = !Fall.wait; $('#fallWait').setAttribute('aria-pressed', String(Fall.wait)); }; $('#fallAuto').onclick = () => { Fall.auto = !Fall.auto; $('#fallAuto').setAttribute('aria-pressed', String(Fall.auto)); };
     // 악보
     $('#sheetPlay').onclick = () => Sheet.play(false); $('#sheetPractice').onclick = () => Sheet.play(true); $('#sheetStop').onclick = () => Sheet.stop();
@@ -1599,7 +1608,7 @@ const Library = {
     S.library.forEach(s => { const d = document.createElement('div'); d.className = 'libitem'; const inp = document.createElement('input'); inp.type = 'text'; inp.value = s.title; inp.id = 'lib-' + s.id; inp.setAttribute('aria-label', '곡 이름'); inp.onchange = () => { s.title = inp.value.trim() || s.title; Store.save(); this.refresh(); toast('이름 변경됨'); };
       const meta = document.createElement('span'); meta.className = 'meta'; meta.textContent = `${s.notes.length}음 · ${s.bpm}BPM · ${s.source || ''}`;
       const mk = (t, cls, fn) => { const b = document.createElement('button'); b.className = 'btn sm ' + (cls || ''); b.textContent = t; b.onclick = fn; return b; };
-      const del = mk('삭제', 'bad', () => { if (del.dataset.armed) { S.library = S.library.filter(x => x.id !== s.id); Store.save(); this.refresh(); toast('삭제됨'); } else { del.dataset.armed = '1'; del.textContent = '정말 삭제?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = '삭제'; } }, 3000); } });
+      const del = mk('삭제', 'bad', () => { if (del.dataset.armed) { S.library = S.library.filter(x => x.id !== s.id); Store.save(); this.refresh(); toast('삭제됨'); } else { del.dataset.armed = '1'; del.textContent = '정말 삭제?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = '삭제'; } }, 5000); } });
       d.append(inp, meta, mk('악보', '', () => { $('#sheetSong').value = s.id; Sheet.load(s); window.scrollTo(0, 0); }), mk('떨어지는 음표', '', () => { $('#fallSong').value = s.id; Fall.load(s.id); App.go('fall'); }), mk('수정', '', () => Review.open({ ...s, libId: s.id }, { source: s.source || '내 곡' })), del); box.appendChild(d); });
   }
 };
