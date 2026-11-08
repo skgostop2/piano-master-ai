@@ -1,0 +1,17 @@
+{
+  "name": "PIANO MASTER AI",
+  "short_name": "PianoMaster",
+  "description": "실제 소리가 나는 가상 피아노와 10단계 AI 학습, 떨어지는 음표, 연주 평가",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#15161a",
+  "theme_color": "#15161a",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
