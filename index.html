@@ -57,7 +57,8 @@ main{flex:1 1 auto;min-height:0;overflow:auto;padding-block:16px;padding-left:ma
 main.tight{padding-block:8px;overflow:hidden;display:flex;flex-direction:column}
 .screen{display:none;max-width:1100px;margin:0 auto;width:100%}
 .screen.active{display:block}
-.screen.fill{display:flex;flex-direction:column;height:100%;min-height:0;max-width:none}
+.screen.fill{flex-direction:column;height:100%;min-height:0;max-width:none}
+.screen.fill.active{display:flex}
 
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .row.between{justify-content:space-between}
@@ -165,6 +166,12 @@ canvas.staff{display:block;max-width:100%}
 .picker .wheel button{display:block;width:100%;height:44px;scroll-snap-align:center;border:0;background:transparent;font-weight:600;font-size:.95em;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
 .picker .wheel button[aria-selected="true"]{color:var(--accent-fg);background:var(--accent);font-weight:800;border-radius:8px}
 @media (max-height:480px){ #studioSheet{max-height:70vh} .fader .track{height:90px} .picker .wheel{height:132px} }
+#rvText{width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.95em;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg2);color:var(--fg);resize:vertical}
+.rvphoto{margin-top:10px;overflow:auto;max-height:340px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.rvphoto canvas{display:block;max-width:100%}
+.libitem{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel)}
+.libitem input{flex:1 1 160px;min-height:36px;font-weight:700}
+.libitem .meta{color:var(--muted);font-size:.85em;white-space:nowrap}
 #noteReadout{min-width:120px;font-weight:700;font-variant-numeric:tabular-nums}
 @media (max-width:700px){
   body{font-size:16px}
@@ -201,7 +208,7 @@ canvas.staff{display:block;max-width:100%}
     <button data-screen="piano">피아노</button>
     <button data-screen="lesson">기초 학습</button>
     <button data-screen="fall">떨어지는 음표</button>
-    <button data-screen="sheet" data-adv>악보 연습</button>
+    <button data-screen="sheet">악보</button>
     <button data-screen="chord" data-adv>코드·스케일</button>
     <button data-screen="eval" data-adv>AI 평가</button>
     <button data-screen="stats">통계·설정</button>
@@ -379,7 +386,8 @@ canvas.staff{display:block;max-width:100%}
         <div class="seg" id="sheetHand"><button data-v="both" aria-pressed="true">양손</button><button data-v="rh">오른손</button><button data-v="lh">왼손</button></div>
         <label class="f small">반복 마디 <input type="number" id="sheetLoopA" min="1" value="1" style="width:64px;min-height:36px">~<input type="number" id="sheetLoopB" min="1" value="1" style="width:64px;min-height:36px"> <input type="checkbox" id="sheetLoopOn"></label>
         <div class="seg"><button id="sheetZoomOut">－</button><button id="sheetZoomIn">＋</button></div>
-        <label class="btn sm" for="sheetFile">악보 파일 열기 (MusicXML/MIDI)</label><input type="file" id="sheetFile" accept=".xml,.musicxml,.mxl,.mid,.midi" hidden>
+        <label class="btn sm primary" for="photoCam">📷 악보 사진 찍기</label><input type="file" id="photoCam" accept="image/*" capture="environment" hidden><label class="btn sm" for="photoPick">🖼 사진 고르기</label><input type="file" id="photoPick" accept="image/*" hidden>
+        <label class="btn sm" for="sheetFile">악보 파일 (MusicXML/MIDI)</label><input type="file" id="sheetFile" accept=".xml,.musicxml,.mxl,.mid,.midi" hidden>
         <button class="btn sm toggle" id="sheetEditBtn" aria-pressed="false">음표 직접 입력</button>
       </div>
       <div id="sheetEditor" hidden style="margin-top:10px" class="stack">
@@ -388,7 +396,33 @@ canvas.staff{display:block;max-width:100%}
         <div class="row"><button class="btn sm" id="sheetEditApply">악보로 만들기</button><button class="btn sm toggle" id="sheetRecBtn" aria-pressed="false">건반으로 입력(메트로놈 맞춰 연주)</button></div>
       </div>
     </div>
+    <div class="card accent" id="reviewCard" hidden>
+      <div class="row between"><div><h3 id="rvHead">악보 확인 · 수정</h3><p class="muted small" id="rvInfo"></p></div>
+        <div class="row"><button class="btn sm" id="rvPlay">🔊 들어보기</button><button class="btn sm" id="rvAI" hidden>🤖 AI로 다시 읽기</button><button class="btn sm good" id="rvSave">💾 내 곡에 저장</button><button class="btn sm" id="rvCancel">취소</button></div></div>
+      <div class="row" style="margin-top:8px">
+        <label class="f small">제목 <input type="text" id="rvTitle" style="width:200px;min-height:36px"></label>
+        <label class="f small">템포 <input type="number" id="rvBpm" min="30" max="240" value="90" style="width:80px;min-height:36px"></label>
+        <label class="f small">박자 <select id="rvSig" style="min-height:36px"><option value="2">2/4</option><option value="3">3/4</option><option value="4" selected>4/4</option><option value="6">6/8</option></select></label>
+        <label class="f small" id="rvClefWrap" hidden>오선 종류 <select id="rvClef" style="min-height:36px"><option value="auto">자동</option><option value="treble">높은음자리표만</option><option value="bass">낮은음자리표만</option><option value="grand">큰보표(위 오른손·아래 왼손)</option></select></label>
+      </div>
+      <div class="rvphoto" id="rvPhotoWrap" hidden><canvas id="rvPhoto"></canvas><p class="muted small">사진 위 표시: <span class="tag rh">오른손</span> <span class="tag lh">왼손</span> 인식한 음표, 초록 선 = 인식한 오선</p></div>
+      <label class="small" for="rvText" style="display:block;margin-top:8px"><b>음표 (직접 고칠 수 있습니다)</b> — 형식 <code>음이름/박자</code>, 1=4분음표, 2=2분음표, 0.5=8분음표, R=쉼표, 동시음은 C4+E4+G4/1, 왼손은 둘째 줄 <code>L:</code> 뒤</label>
+      <textarea id="rvText" rows="4"></textarea>
+      <div class="row" style="margin-top:6px"><button class="btn sm" id="rvApply">✓ 고친 내용 악보에 반영</button><span class="muted small" id="rvMsg"></span></div>
+    </div>
     <div class="staffwrap"><canvas class="staff" id="staffCanvas"></canvas></div>
+    <div class="card" id="libraryCard">
+      <div class="row between"><h3>📚 내 곡 목록</h3><span class="muted small" id="libCount"></span></div>
+      <p class="muted small">사진·파일·직접 입력으로 등록한 곡입니다. 이 기기에 저장되며 떨어지는 음표·AI 평가에서도 고를 수 있습니다.</p>
+      <div class="stack" id="libList" style="margin-top:8px"></div>
+      <details style="margin-top:10px"><summary class="small"><b>악보 사진 잘 찍는 법 · 무료 악보 구하는 곳</b></summary>
+        <ul class="small muted" style="margin:6px 0 0;padding-left:18px">
+          <li>인쇄된 악보를 밝은 곳에서, 종이를 평평하게 펴고 정면에서 찍으세요. 그림자와 기울기가 적을수록 정확합니다.</li>
+          <li>한 장에 한 페이지. 오선이 화면 가로를 꽉 채우도록 가까이.</li>
+          <li>AI 없이 읽는 방식은 음 높이 위주로 읽습니다. #·♭, 쉼표, 셋잇단음표는 못 읽으니 '들어보기' 후 고쳐 주세요.</li>
+          <li>무료 악보: MuseScore(musescore.com, 회원가입 후 MusicXML/MIDI 다운로드), Mutopia Project(mutopiaproject.org, 저작권 만료 곡 MIDI). 파일로 받으면 사진보다 정확합니다.</li>
+        </ul></details>
+    </div>
     <div class="card" id="sheetResult" hidden></div>
   </div>
 </section>
@@ -590,6 +624,7 @@ const defaultData = () => ({
   sessions: [],                                 // {date, song, pitch, rhythm, timing, missed, extra, note}
   mistakes: {},                                 // 'song|measure|pitch' -> count
   noteErrors: {},                               // midi -> count (학습 단계에서 틀린 음)
+  library: [],                                 // 내 곡 {id,title,bpm,sig,level,notes,source,created}
   recordings: [],                               // {date, name, events:[{m,t,d,v}]}
   bookmarks: []                                 // {song, measure, note}
 });
@@ -849,7 +884,8 @@ const SONGS = [
   { id: 'chords', title: '화음 놀이 (왼손 코드)', bpm: 80, sig: 4, level: 4, notes: [...seq('rh', 'G4/1 E4/1 G4/2 A4/1 F4/1 A4/2 G4/1 E4/1 C5/1 B4/1 C5/4'), ...seq('lh', 'C3+E3+G3/4 F3+A3+C4/4 G2+B2+D3/2 G2+B2+F3/2 C3+E3+G3/4')] },
   { id: 'march', title: '작은 행진곡', bpm: 100, sig: 4, level: 5, notes: [...seq('rh', 'C5/1 C5/.5 C5/.5 G4/1 G4/1 A4/.5 B4/.5 C5/1 E5/1 D5/1 C5/1 B4/.5 A4/.5 G4/2 F5/1 E5/1 D5/.5 C5/.5 B4/1 C5/1 D5/1 B4/.5 G4/.5 C5/4'), ...seq('lh', 'C3/1 G3/1 C3/1 G3/1 F3/1 C4/1 G3/1 D4/1 G2/1 D3/1 G2/1 D3/1 C3/1 G3/1 C3/2')] }
 ];
-const songById = id => SONGS.find(s => s.id === id) || SONGS[0];
+const songById = id => SONGS.find(s => s.id === id) || (S.library || []).find(s => s.id === id) || SONGS[0];
+const allSongs = () => [...SONGS, ...(S.library || [])];
 const songBeats = s => Math.max(...s.notes.map(n => n.s + n.d), 0);
 const songMeasures = s => Math.ceil(songBeats(s) / s.sig);
 
@@ -1009,8 +1045,8 @@ const Scoring = {
 /* ========== 떨어지는 음표 ========== */
 const Fall = {
   song: null, speed: 1, hand: 'both', playing: false, t0: 0, pauseAt: 0, paused: false, wait: false, auto: false, raf: 0, notes: [], hits: 0, miss: 0, extra: 0, events: [], off: null, loop: null, pps: 160, canvas: null, ctx: null, lastBeat: -1, waitingFor: null, scheduled: new Set(),
-  init() { this.canvas = $('#fallCanvas'); this.ctx = this.canvas.getContext('2d'); const sel = $('#fallSong'); SONGS.forEach(s => sel.add(new Option(s.title, s.id))); if (window.ExtraSong) sel.add(new Option(ExtraSong.title, 'extra')); this.load(sel.value); sel.onchange = () => this.load(sel.value); new ResizeObserver(() => this.resize()).observe($('#fallWrap')); $('#kbScroll').addEventListener('scroll', () => { if (!this.playing) this.draw(); }); },
-  load(id) { this.stop(); this.song = id === 'extra' ? window.ExtraSong : songById(id); $('#fallLoopB').value = songMeasures(this.song); $('#fallLoopB').max = $('#fallLoopA').max = songMeasures(this.song); this.prep(); this.draw(); },
+  init() { this.canvas = $('#fallCanvas'); this.ctx = this.canvas.getContext('2d'); const sel = $('#fallSong'); SONGS.forEach(s => sel.add(new Option(s.title, s.id))); this.load(sel.value); sel.onchange = () => this.load(sel.value); new ResizeObserver(() => this.resize()).observe($('#fallWrap')); $('#kbScroll').addEventListener('scroll', () => { if (!this.playing) this.draw(); }); },
+  load(id) { this.stop(); this.song = songById(id); $('#fallLoopB').value = songMeasures(this.song); $('#fallLoopB').max = $('#fallLoopA').max = songMeasures(this.song); this.prep(); this.draw(); },
   prep() { const spb = 60 / (this.song.bpm * this.speed); this.notes = this.song.notes.filter(n => this.hand === 'both' || n.h === this.hand).map(n => ({ ...n, t: n.s * spb, dur: n.d * spb, state: '' })); this.hits = this.miss = this.extra = 0; this.events = []; this.scheduled.clear(); this.score(); },
   resize() { const w = $('#fallWrap'); const dpr = Math.min(2, window.devicePixelRatio || 1); this.canvas.width = w.clientWidth * dpr; this.canvas.height = w.clientHeight * dpr; this.canvas.style.width = w.clientWidth + 'px'; this.canvas.style.height = w.clientHeight + 'px'; this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); this.draw(); },
   curT() { if (!this.playing) return 0; if (this.paused) return this.pauseAt - this.t0; return Audio.now() - this.t0; },
@@ -1128,7 +1164,7 @@ const Sheet = {
   finish(s) { const practice = this.practicing; const ev = this.events; this.stop(); if (practice) { const r = Scoring.evaluate(s, ev, { speed: 1, latencyMs: S.settings.latencyMs, hand: 'both' }); Stats.addSession(this.song, r, '악보 연습'); const box = $('#sheetResult'); box.hidden = false; box.innerHTML = Eval.reportHTML(r, s); } },
   stop() { this.playing = false; cancelAnimationFrame(this.raf); if (this.off) this.off(); this.off = null; Keyboard.clearHints(); if (this.song) Staff.render(this.song, -1); },
   fromText(text) { const parts = text.split(/L:/i); const notes = [...seq('rh', parts[0] || ''), ...(parts[1] ? seq('lh', parts[1]) : [])]; if (!notes.length) { toast('음표를 읽지 못했습니다. 예: C4/1 D4/1'); return; } this.custom({ id: 'custom', title: '직접 입력한 악보', bpm: clamp(+$('#sheetBpm').value || 80, 30, 240), sig: 4, level: 9, notes }); },
-  custom(song) { const sel = $('#sheetSong'); let opt = Array.from(sel.options).find(o => o.value === 'custom'); if (!opt) { opt = new Option(song.title, 'custom'); sel.add(opt); } opt.text = song.title; sel.value = 'custom'; window.ExtraSong = song; this.load(song); const fs = $('#fallSong'); if (!Array.from(fs.options).some(o => o.value === 'extra')) fs.add(new Option(song.title, 'extra')); else Array.from(fs.options).find(o => o.value === 'extra').text = song.title; const es = $('#evalSong'); if (!Array.from(es.options).some(o => o.value === 'extra')) es.add(new Option(song.title, 'extra')); else Array.from(es.options).find(o => o.value === 'extra').text = song.title; toast(`"${song.title}" 불러옴: ${song.notes.length}음, ${songMeasures(song)}마디`); },
+  custom(song, source = '파일') { Review.open(song, { source }); },
   // 건반으로 입력: 메트로놈에 맞춰 연주 → 8분음표 단위로 양자화
   recording: null,
   toggleRec() { if (this.recording) { const ev = this.recording.events; Metro.stop(); this.recording = null; $('#sheetRecBtn').setAttribute('aria-pressed', 'false'); const spb = 60 / Metro.bpm; const notes = ev.filter(e => e.d > 0).map(e => ({ m: e.m, s: Math.round(e.t / spb * 2) / 2, d: Math.max(.5, Math.round(e.d / spb * 2) / 2), h: e.m < 60 ? 'lh' : 'rh' })); if (!notes.length) { toast('입력된 음이 없습니다'); return; } this.custom({ id: 'custom', title: '건반으로 입력한 악보', bpm: Metro.bpm, sig: 4, level: 9, notes }); return; }
@@ -1192,7 +1228,7 @@ const Eval = {
   song: null, events: [], t0: 0, off: null, running: false, timer: null,
   init() { const sel = $('#evalSong'); SONGS.forEach(s => sel.add(new Option(s.title, s.id))); $('#evalLat').textContent = S.settings.latencyMs + 'ms'; const mt = $('#micTarget'); mt.add(new Option('(없음)', 0)); for (let m = 48; m <= 84; m++) mt.add(new Option(`${midiName(m)} ${midiSol(m)}`, m)); },
   start() {
-    App.ensureAudio(); this.stop(); const id = $('#evalSong').value; this.song = id === 'extra' ? window.ExtraSong : songById(id); const speed = parseFloat($('#evalSpeed').value); const bpm = Math.round(this.song.bpm * speed); this.events = []; this.running = true; $('#evalState').textContent = '카운트인…'; $('#evalReport').hidden = true;
+    App.ensureAudio(); this.stop(); const id = $('#evalSong').value; this.song = songById(id); const speed = parseFloat($('#evalSpeed').value); const bpm = Math.round(this.song.bpm * speed); this.events = []; this.running = true; $('#evalState').textContent = '카운트인…'; $('#evalReport').hidden = true;
     Metro.start({ bpm, sig: this.song.sig, sound: 'wood', countIn: true, inc: 0, onBeat: null, onCountDone: t0 => { this.t0 = t0; $('#evalState').textContent = '연주 중 — 끝나면 "연주 끝"'; this.off = Input.on(e => { if (e.type === 'on') this.events.push({ m: e.midi, t: Audio.now() - this.t0, d: 0 }); else { const ev = this.events.slice().reverse().find(x => x.m === e.midi && !x.d); if (ev) ev.d = e.dur; } }); const len = songBeats(this.song) * 60 / bpm + 2; this.timer = setTimeout(() => this.finish(), len * 1000); } });
     Keyboard.clearHints(); const spb = 60 / bpm; this.hintTimer = setInterval(() => { if (!this.t0) return; const t = Audio.now() - this.t0; Keyboard.clearHints(); this.song.notes.forEach(n => { if (n.s * spb <= t + .4 && n.s * spb + n.d * spb > t) Keyboard.hint(n.m, n.h); }); }, 60);
     toast(`${this.song.sig}박 카운트인 뒤 시작하세요 (${bpm} BPM)`, 2500);
@@ -1219,7 +1255,7 @@ const Eval = {
   },
   async aiCoach(r, song, tips) {
     const cb = $('#coachBox'); const el = document.createElement('div'); el.className = 'fb'; el.textContent = 'AI 코치가 설명을 작성 중…'; cb.appendChild(el);
-    try { const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': S.settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model: 'claude-sonnet-4-5', max_tokens: 400, messages: [{ role: 'user', content: `당신은 친절한 피아노 선생님입니다. 초보 학습자에게 한국어로 5문장 이내로 격려와 구체적 연습법을 말해 주세요.\n곡: ${song.title} (${song.bpm}BPM)\n결과: 음정 ${r.pitch}%, 리듬 ${r.rhythm}%, 길이 ${r.duration}%, 평균 타이밍 ${r.meanDt}ms, 놓친 음 ${r.missed.length}, 오타 ${r.extras.length}\n반복 실수: ${r.repeat.join('; ') || '없음'}\n규칙 기반 처방: ${tips.map(t => t.t).join(' / ')}` }] }) }); const j = await res.json(); el.textContent = '🤖 ' + (j.content && j.content[0] ? j.content[0].text : (j.error ? j.error.message : '응답 없음')); el.classList.add('good'); }
+    try { const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': S.settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 400, messages: [{ role: 'user', content: `당신은 친절한 피아노 선생님입니다. 초보 학습자에게 한국어로 5문장 이내로 격려와 구체적 연습법을 말해 주세요.\n곡: ${song.title} (${song.bpm}BPM)\n결과: 음정 ${r.pitch}%, 리듬 ${r.rhythm}%, 길이 ${r.duration}%, 평균 타이밍 ${r.meanDt}ms, 놓친 음 ${r.missed.length}, 오타 ${r.extras.length}\n반복 실수: ${r.repeat.join('; ') || '없음'}\n규칙 기반 처방: ${tips.map(t => t.t).join(' / ')}` }] }) }); const j = await res.json(); el.textContent = '🤖 ' + (j.content && j.content[0] ? j.content[0].text : (j.error ? j.error.message : '응답 없음')); el.classList.add('good'); }
     catch (e) { el.textContent = 'AI 코치 연결 실패(네트워크 또는 키 오류): ' + e.message; el.classList.add('warn'); }
   },
   // 지연 보정: 메트로놈 8박에 맞춰 C4를 눌러 평균 오차를 구한다
@@ -1511,8 +1547,206 @@ const Studio = {
   const ft = Fall.tick.bind(Fall); Fall.tick = function () { const t0 = this.t0; ft(); if (this.playing && !this.paused && Band.on && !Studio.freeplay && Math.abs(Band.t0 - this.t0) > .001 && t0 !== this.t0) Studio.startForSong(this.song, this.t0, this.song.bpm * this.speed, this.loop); };
 })();
 
+
+/* ========== 음표 ↔ 텍스트 표기 ========== */
+const Notation = {
+  fmt: d => String(+d.toFixed(3)),
+  handText(notes) {
+    const ns = notes.slice().sort((a, b) => a.s - b.s || a.m - b.m); const groups = [];
+    ns.forEach(n => { const g = groups[groups.length - 1]; if (g && Math.abs(g.s - n.s) < 1e-3) g.ns.push(n); else groups.push({ s: n.s, ns: [n] }); });
+    const out = []; let t = 0;
+    groups.forEach((g, i) => { if (g.s > t + 1e-3) out.push('R/' + this.fmt(g.s - t)); let d = Math.min(...g.ns.map(n => n.d)); const nx = groups[i + 1]; if (nx && nx.s < g.s + d - 1e-3) d = nx.s - g.s; out.push(g.ns.map(n => midiName(n.m)).join('+') + '/' + this.fmt(d)); t = g.s + d; });
+    return out.join(' ');
+  },
+  toText(song) { const rh = song.notes.filter(n => n.h !== 'lh'), lh = song.notes.filter(n => n.h === 'lh'); return this.handText(rh) + (lh.length ? '\nL: ' + this.handText(lh) : ''); },
+  fromText(text) { const parts = text.split(/L:/i); const notes = [...seq('rh', (parts[0] || '').replace(/\n/g, ' ')), ...(parts[1] ? seq('lh', parts[1].replace(/\n/g, ' ')) : [])]; const bad = text.replace(/L:/ig, ' ').trim().split(/\s+/).filter(t => t && !/^(R|[A-Ga-g][#b]?-?\d(\+[A-Ga-g][#b]?-?\d)*)(\/[\d.]+)?$/.test(t)); return { notes, bad }; }
+};
+
+/* ========== 검토 · 수정 화면 ========== */
+const Review = {
+  song: null, ctx: null, playing: [],
+  open(song, ctx = {}) {
+    this.song = { ...song, notes: song.notes.slice() }; this.ctx = ctx; App.go('sheet');
+    $('#reviewCard').hidden = false; $('#rvTitle').value = song.title || '새 악보'; $('#rvBpm').value = song.bpm || 90; $('#rvSig').value = String(song.sig || 4);
+    $('#rvText').value = Notation.toText(this.song); $('#rvHead').textContent = `악보 확인 · 수정 (${ctx.source || '입력'})`;
+    $('#rvInfo').textContent = ctx.info || `${song.notes.length}음 · ${songMeasures(this.song)}마디. 들어보고 틀린 음은 아래 글자를 고친 뒤 저장하세요.`;
+    $('#rvClefWrap').hidden = !ctx.photo; $('#rvPhotoWrap').hidden = !ctx.photo; if (ctx.photo) { $('#rvClef').value = ctx.clef || 'auto'; this.drawPhoto(); }
+    $('#rvAI').hidden = !(ctx.photoFile && AIRead.available()); $('#rvMsg').textContent = '';
+    Sheet.stop(); Sheet.song = this.song; Staff.render(this.song, -1); $('#reviewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  },
+  drawPhoto() { const r = this.ctx.photo; if (!r) return; const cv = $('#rvPhoto'); cv.width = r.canvas.width; cv.height = r.canvas.height; const c = cv.getContext('2d'); c.drawImage(r.canvas, 0, 0); c.lineWidth = 2; c.strokeStyle = 'rgba(30,160,80,.8)'; r.staves.forEach(st => st.lines.forEach(y => { c.beginPath(); c.moveTo(st.x0, y); c.lineTo(st.x1, y); c.stroke(); })); r.heads.forEach(h => { c.strokeStyle = h.hand === 'lh' ? '#2f7fc1' : '#e0742c'; c.lineWidth = 3; c.beginPath(); c.ellipse(h.x, h.y, h.s * .75, h.s * .55, 0, 0, Math.PI * 2); c.stroke(); c.fillStyle = c.strokeStyle; c.font = `bold ${Math.round(h.s * .9)}px sans-serif`; c.fillText(midiName(h.m), h.x - h.s * .8, h.y - h.s * .9); }); },
+  apply(silent) { const { notes, bad } = Notation.fromText($('#rvText').value); if (!notes.length) { $('#rvMsg').textContent = '음표를 읽지 못했습니다. 예: C4/1 D4/1 E4/2'; return false; } this.song.notes = notes; this.song.bpm = clamp(+$('#rvBpm').value || 90, 30, 240); this.song.sig = +$('#rvSig').value || 4; this.song.title = $('#rvTitle').value.trim() || '새 악보'; Sheet.song = this.song; Staff.render(this.song, -1); $('#rvMsg').textContent = bad.length ? `읽지 못한 표기 ${bad.length}개는 건너뜀: ${bad.slice(0, 5).join(' ')}` : (silent ? '' : `반영됨: ${notes.length}음 · ${songMeasures(this.song)}마디`); return true; },
+  async play() { if (!this.apply(true)) return; await App.ensureAudio(); const s = this.song, spb = 60 / s.bpm, t0 = Audio.now() + .15; s.notes.forEach(n => Audio.play(n.m, t0 + n.s * spb, n.d * spb * .9, .7)); const sorted = s.notes.slice().sort((a, b) => a.s - b.s); const end = songBeats(s) * spb; const tick = () => { const t = Audio.now() - t0; const beat = t / spb; let cur = -1; sorted.forEach((n, i) => { if (n.s <= beat + .02 && n.s + n.d > beat) cur = i; }); Staff.render(s, cur); if (t < end && Sheet.song === s) requestAnimationFrame(tick); else Staff.render(s, -1); }; tick(); },
+  save() { if (!this.apply(true)) return; const s = this.song; const id = s.libId || ('u' + Date.now().toString(36)); const rec = { id, title: s.title, bpm: s.bpm, sig: s.sig, level: 9, notes: s.notes.map(n => ({ m: n.m, s: +n.s.toFixed(4), d: +n.d.toFixed(4), h: n.h })), source: this.ctx.source || '입력', created: new Date().toISOString() }; const i = S.library.findIndex(x => x.id === id); if (i >= 0) S.library[i] = rec; else S.library.unshift(rec); Store.save(); this.close(); Library.refresh(id); toast(`"${rec.title}" 저장됨 (${rec.notes.length}음)`); },
+  close() { $('#reviewCard').hidden = true; this.ctx = null; },
+  async rerunOMR() { const f = this.ctx && this.ctx.photoFile; if (!f) return; $('#rvMsg').textContent = '다시 읽는 중…'; const clef = $('#rvClef').value; try { const r = await OMR.fromFile(f, { clef }); Review.open({ ...r.song, title: $('#rvTitle').value }, { source: '사진(AI 없이)', photo: r, photoFile: f, clef, info: r.info }); } catch (e) { $('#rvMsg').textContent = e.message; } }
+};
+
+/* ========== 내 곡 목록 ========== */
+const Library = {
+  init() {
+    $('#rvApply').onclick = () => Review.apply(); $('#rvPlay').onclick = () => Review.play(); $('#rvSave').onclick = () => Review.save(); $('#rvCancel').onclick = () => { Review.close(); Sheet.load(songById($('#sheetSong').value)); }; $('#rvClef').onchange = () => Review.rerunOMR(); $('#rvAI').onclick = () => AIRead.run();
+    const onPhoto = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; toast('악보 사진을 읽는 중…', 4000); try { const r = await OMR.fromFile(f, { clef: 'auto' }); Review.open(r.song, { source: '사진(AI 없이)', photo: r, photoFile: f, clef: 'auto', info: r.info }); toast(`인식 완료: ${r.song.notes.length}음`, 1500); } catch (err) { console.warn(err); toast(err.message, 5000); } };
+    $('#photoCam').onchange = onPhoto; $('#photoPick').onchange = onPhoto;
+    $('#sheetEditApply').onclick = () => { const { notes } = Notation.fromText($('#sheetEditText').value); if (!notes.length) { toast('음표를 읽지 못했습니다. 예: C4/1 D4/1'); return; } Review.open({ id: 'new', title: '직접 입력한 악보', bpm: clamp(+$('#sheetBpm').value || 80, 30, 240), sig: 4, level: 9, notes }, { source: '직접 입력' }); };
+    this.refresh();
+  },
+  refresh(selectId) {
+    [['#sheetSong', true], ['#fallSong', false], ['#evalSong', false]].forEach(([sel, isSheet]) => { const el = $(sel); const cur = selectId || el.value; el.innerHTML = ''; const g1 = document.createElement('optgroup'); g1.label = '기본 곡'; SONGS.forEach(s => g1.appendChild(new Option(s.title, s.id))); el.appendChild(g1); if (S.library.length) { const g2 = document.createElement('optgroup'); g2.label = '내 곡'; S.library.forEach(s => g2.appendChild(new Option('★ ' + s.title, s.id))); el.appendChild(g2); } if (allSongs().some(s => s.id === cur)) el.value = cur; });
+    if (selectId) { Sheet.load(songById(selectId)); Fall.load(selectId); }
+    $('#libCount').textContent = S.library.length ? `${S.library.length}곡` : '';
+    const box = $('#libList'); box.innerHTML = ''; if (!S.library.length) { box.innerHTML = '<p class="muted small">아직 등록한 곡이 없습니다. 위의 📷 악보 사진 찍기로 첫 곡을 등록해 보세요.</p>'; return; }
+    S.library.forEach(s => { const d = document.createElement('div'); d.className = 'libitem'; const inp = document.createElement('input'); inp.type = 'text'; inp.value = s.title; inp.id = 'lib-' + s.id; inp.setAttribute('aria-label', '곡 이름'); inp.onchange = () => { s.title = inp.value.trim() || s.title; Store.save(); this.refresh(); toast('이름 변경됨'); };
+      const meta = document.createElement('span'); meta.className = 'meta'; meta.textContent = `${s.notes.length}음 · ${s.bpm}BPM · ${s.source || ''}`;
+      const mk = (t, cls, fn) => { const b = document.createElement('button'); b.className = 'btn sm ' + (cls || ''); b.textContent = t; b.onclick = fn; return b; };
+      const del = mk('삭제', 'bad', () => { if (del.dataset.armed) { S.library = S.library.filter(x => x.id !== s.id); Store.save(); this.refresh(); toast('삭제됨'); } else { del.dataset.armed = '1'; del.textContent = '정말 삭제?'; setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = '삭제'; } }, 3000); } });
+      d.append(inp, meta, mk('악보', '', () => { $('#sheetSong').value = s.id; Sheet.load(s); window.scrollTo(0, 0); }), mk('떨어지는 음표', '', () => { $('#fallSong').value = s.id; Fall.load(s.id); App.go('fall'); }), mk('수정', '', () => Review.open({ ...s, libId: s.id }, { source: s.source || '내 곡' })), del); box.appendChild(d); });
+  }
+};
+
+/* ========== 사진 악보 인식 (AI 없이, 기기 안에서) ==========
+   1) 축소·흑백·적응형 이진화  2) 기울기 보정  3) 오선(5줄) 검출  4) 오선 제거
+   5) 음표머리 검출(채운/빈)·기둥·꼬리/빔·점  6) 오선 위치 → 음 높이, 모양 → 박자
+   7) 큰보표는 위=오른손, 아래=왼손, 가로 위치로 시간 정렬 */
+const OMR = {
+  async loadImage(file) {
+    if (window.createImageBitmap) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { } }
+    return await new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => rej(new Error('사진을 열 수 없습니다')); img.src = URL.createObjectURL(file); });
+  },
+  async fromFile(file, opts = {}) { const img = await this.loadImage(file); return this.run(img, opts); },
+  binarize(gray0, W, H) { // 적응형(주변 평균) 이진화: 그림자·조명 차이에 강함. 먼저 3x3 평균으로 잡티 제거
+    const gray = new Float32Array(W * H); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let sm = 0, n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const yy = y + dy, xx = x + dx; if (yy >= 0 && yy < H && xx >= 0 && xx < W) { sm += gray0[yy * W + xx]; n++; } } gray[y * W + x] = sm / n; }
+    const ii = new Float64Array((W + 1) * (H + 1)); for (let y = 0; y < H; y++) { let row = 0; for (let x = 0; x < W; x++) { row += gray[y * W + x]; ii[(y + 1) * (W + 1) + x + 1] = ii[y * (W + 1) + x + 1] + row; } }
+    const r = Math.max(16, Math.round(W / 16)); const bin = new Uint8Array(W * H); // 넓은 창 = 종이 밝기 기준
+    for (let y = 0; y < H; y++) { const y0 = Math.max(0, y - r), y1 = Math.min(H, y + r + 1); for (let x = 0; x < W; x++) { const x0 = Math.max(0, x - r), x1 = Math.min(W, x + r + 1); const sum = ii[y1 * (W + 1) + x1] - ii[y0 * (W + 1) + x1] - ii[y1 * (W + 1) + x0] + ii[y0 * (W + 1) + x0]; const mean = sum / ((x1 - x0) * (y1 - y0)); const g = gray[y * W + x]; bin[y * W + x] = (g < mean * .88 && g < 215) ? 1 : 0; } }
+    return bin;
+  },
+  draw(img, W, H, angle) { const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d', { willReadFrequently: true }); c.fillStyle = '#fff'; c.fillRect(0, 0, W, H); c.translate(W / 2, H / 2); c.rotate(angle); c.drawImage(img, -W / 2, -H / 2, W, H); c.setTransform(1, 0, 0, 1, 0, 0); const d = c.getImageData(0, 0, W, H).data; const gray = new Float32Array(W * H); for (let i = 0; i < W * H; i++) gray[i] = d[i * 4] * .299 + d[i * 4 + 1] * .587 + d[i * 4 + 2] * .114; return { cv, gray }; },
+  skew(bin, W, H) { // 가로선 투영이 가장 날카로운 각도 찾기
+    const pts = []; for (let y = 4; y < H - 4; y++) for (let x = 0; x < W; x += 2) { const i = y * W + x; if (bin[i] && !bin[i - 4 * W] && !bin[i + 4 * W] && bin[i + 2 < W * H ? i + 2 : i] && bin[i - 2 >= 0 ? i - 2 : i]) pts.push(x - W / 2, y - H / 2); } // 얇은 가로 획(오선)만
+    let best = 0, bv = -1; for (let a = -6; a <= 6.001; a += .25) { const r = a * Math.PI / 180, sn = Math.sin(r), cs = Math.cos(r); const hist = new Float32Array(H * 2); for (let i = 0; i < pts.length; i += 2) { const yy = Math.round(pts[i + 1] * cs - pts[i] * sn + H); if (yy >= 0 && yy < H * 2) hist[yy]++; } let v = 0; for (let i = 0; i < hist.length; i++) v += hist[i] * hist[i]; if (v > bv) { bv = v; best = a; } }
+    return best;
+  },
+  findStaves(bin, W, H) {
+    // 각 행에서 '작은 틈(≤3px)을 허용한' 가장 긴 가로 연속 길이
+    const runs = new Int32Array(H), starts = new Int32Array(H), ends = new Int32Array(H);
+    for (let y = 0; y < H; y++) { let best = 0, cur = 0, gap = 0, st = 0, bs = 0, be = 0; for (let x = 0; x < W; x++) { if (bin[y * W + x]) { if (cur === 0) st = x; cur += gap + 1; gap = 0; if (cur > best) { best = cur; bs = st; be = x; } } else if (cur > 0) { gap++; if (gap > 6) { cur = 0; gap = 0; } } } runs[y] = best; starts[y] = bs; ends[y] = be; }
+    const lineRows = []; for (let y = 0; y < H; y++) if (runs[y] > W * .22) lineRows.push(y);
+    const lines = []; lineRows.forEach(y => { const L = lines[lines.length - 1]; if (L && y - L.y1 <= 1) { L.y1 = y; L.x0 = Math.min(L.x0, starts[y]); L.x1 = Math.max(L.x1, ends[y]); } else lines.push({ y0: y, y1: y, x0: starts[y], x1: ends[y] }); });
+    lines.forEach(L => { L.y = (L.y0 + L.y1) / 2; L.th = L.y1 - L.y0 + 1; });
+    const staves = []; let i = 0;
+    while (i + 4 < lines.length) { const g = lines.slice(i, i + 5); const gaps = g.slice(1).map((L, k) => L.y - g[k].y); const m = gaps.reduce((a, b) => a + b) / 4; if (m > 4 && gaps.every(d => Math.abs(d - m) < m * .3)) { staves.push({ lines: g.map(L => L.y), s: m, th: Math.max(1, Math.round(g.reduce((a, L) => a + L.th, 0) / 5)), x0: Math.min(...g.map(L => L.x0)), x1: Math.max(...g.map(L => L.x1)), top: g[0].y, bottom: g[4].y }); i += 5; } else i++; }
+    staves.forEach(st => { const on = x => st.lines.filter(ly => { const y = Math.round(ly); return [y - 1, y, y + 1].some(yy => yy >= 0 && yy < H && bin[yy * W + x]); }).length >= 4;
+      let x = Math.round(st.x0), miss = 0; while (x > 0) { if (on(x - 1)) { miss = 0; x--; } else if (++miss <= Math.round(st.s * .5)) x--; else break; } st.x0 = x + miss;
+      x = Math.round(st.x1); miss = 0; while (x < W - 1) { if (on(x + 1)) { miss = 0; x++; } else if (++miss <= Math.round(st.s * .5)) x++; else break; } st.x1 = x - miss; });
+    return staves;
+  },
+  removeLines(bin, W, H, staves) {
+    const out = bin.slice(); staves.forEach(st => { const half = Math.ceil(st.th / 2) + 1; const lines = st.lines.slice(); // 덧줄 위치도 제거 대상
+      for (let k = 1; k <= 4; k++) { lines.push(st.top - k * st.s, st.bottom + k * st.s); }
+      lines.forEach((ly, li) => { const isLedger = li >= 5; const yc = Math.round(ly); for (let x = Math.max(0, Math.round(st.x0) - 2); x <= Math.min(W - 1, Math.round(st.x1) + 2); x++) { const above = yc - half - 1, below = yc + half + 1; if (above < 0 || below >= H) continue; const a = bin[above * W + x] || (above - 1 >= 0 && bin[(above - 1) * W + x]); const b = bin[below * W + x] || (below + 1 < H && bin[(below + 1) * W + x]); if (!a && !b) for (let y = yc - half; y <= yc + half; y++) if (y >= 0 && y < H) { if (!isLedger || this._isThinH(bin, W, x, y)) out[y * W + x] = 0; } } }); });
+    return out;
+  },
+  _isThinH(bin, W, x, y) { return true; },
+  integral(b, W, H) { const ii = new Int32Array((W + 1) * (H + 1)); for (let y = 0; y < H; y++) { let row = 0; for (let x = 0; x < W; x++) { row += b[y * W + x]; ii[(y + 1) * (W + 1) + x + 1] = ii[y * (W + 1) + x + 1] + row; } } return (x0, y0, x1, y1) => { x0 = clamp(Math.round(x0), 0, W); x1 = clamp(Math.round(x1), 0, W); y0 = clamp(Math.round(y0), 0, H); y1 = clamp(Math.round(y1), 0, H); if (x1 <= x0 || y1 <= y0) return 0; return (ii[y1 * (W + 1) + x1] - ii[y0 * (W + 1) + x1] - ii[y1 * (W + 1) + x0] + ii[y0 * (W + 1) + x0]) / ((x1 - x0) * (y1 - y0)); }; },
+  vRun(b, W, H, x, y, dir) { // (x 근처 ±1) 세로로 이어진 검은 길이
+    let n = 0, miss = 0; for (let yy = y; yy >= 0 && yy < H; yy += dir) { const xx = Math.round(x); const on = b[yy * W + xx] || (xx > 0 && b[yy * W + xx - 1]) || (xx < W - 1 && b[yy * W + xx + 1]); if (on) { n++; miss = 0; } else if (++miss > 2) break; else n++; } return n - miss;
+  },
+  heads(nb, W, H, st, box) {
+    const s = st.s, hw = s * 1.3, hh = s * .9, cand = [];
+    const yTop = st.top - s * 4.2, yBot = st.bottom + s * 4.2, xStart = st.x0 + s * 3.2, xEnd = st.x1 - s * .3;
+    const lineYs = [...st.lines]; for (let k = 1; k <= 4; k++) lineYs.push(st.top - k * s, st.bottom + k * s); const lh = st.th / 2 + 1;
+    const onLine = y => lineYs.some(ly => Math.abs(ly - y) < s * .22);
+    const holeAB = (x, y, w) => { // 음표머리 안쪽 타원에서 오선 줄 행을 뺀 나머지의 '검은 비율' (빈 음표면 낮음)
+      const rx = w * .32, ry = s * .3; let dark = 0, tot = 0; const lyNear = lineYs.find(ly => Math.abs(ly - y) < s * .3);
+      for (let yy = Math.round(y - ry); yy <= Math.round(y + ry); yy++) { if (lyNear != null && Math.abs(yy - lyNear) <= st.th / 2 + .5) continue; for (let xx = Math.round(x - rx); xx <= Math.round(x + rx); xx++) { const e = ((xx - x) / rx) ** 2 + ((yy - y) / ry) ** 2; if (e > 1 || yy < 0 || yy >= H || xx < 0 || xx >= W) continue; tot++; if (nb[yy * W + xx]) dark++; } }
+      return tot ? dark / tot : 1; };
+    for (let y = Math.max(1, Math.round(yTop)); y <= Math.min(H - 2, Math.round(yBot)); y++) for (let x = Math.round(xStart); x <= Math.round(xEnd); x++) {
+      const f = box(x - hw / 2, y - hh / 2, x + hw / 2, y + hh / 2); if (f < .3) continue;
+      const fl = box(x - hw * 1.3, y - hh * .35, x - hw * .7, y + hh * .35), fr = box(x + hw * .7, y - hh * .35, x + hw * 1.3, y + hh * .35);
+      if (f > .7 && f - Math.max(fl, fr) > .25) { const ha = holeAB(x, y, hw); if (ha < .94) { const tp = box(x - hw * .3, y - hh / 2, x + hw * .3, y - hh * .28), bt = box(x - hw * .3, y + hh * .28, x + hw * .3, y + hh / 2), eL = box(x - hw / 2, y - hh * .3, x - hw * .28, y + hh * .3), eR = box(x + hw * .28, y - hh * .3, x + hw / 2, y + hh * .3); cand.push({ x, y, f: .5 + .25 * Math.min(tp, bt) / Math.max(tp, bt, .01) + .15 * Math.min(eL, eR) / Math.max(eL, eR, .01) + .3 * (1 - ha), filled: false, ha }); } else cand.push({ x, y, f, filled: true, ha }); continue; }
+      for (const k of [1, 1.3]) { // 2분음표(1) · 온음표(1.3배 넓음)
+        const w = hw * k, h2 = hh * (k > 1 ? 1.05 : 1); const F = k === 1 ? f : box(x - w / 2, y - h2 / 2, x + w / 2, y + h2 / 2);
+        const inner = box(x - w * .18, y - h2 * .12, x + w * .18, y + h2 * .12), eL = box(x - w / 2, y - h2 * .3, x - w * .28, y + h2 * .3), eR = box(x + w * .28, y - h2 * .3, x + w / 2, y + h2 * .3), tp = box(x - w * .3, y - h2 / 2, x + w * .3, y - h2 * .28), bt = box(x - w * .3, y + h2 * .28, x + w * .3, y + h2 / 2);
+        const sL = box(x - w * 1.25, y - h2 * .3, x - w * .65, y + h2 * .3), sR = box(x + w * .65, y - h2 * .3, x + w * 1.25, y + h2 * .3);
+        const ring = [0, 1, 2, 3, 4, 5, 6, 7].filter(q => { const a = q * Math.PI / 4; for (const rr of [.32, .4, .48, .56]) { const px = Math.round(x + Math.cos(a) * w * rr), py = Math.round(y + Math.sin(a) * h2 * rr); if (py >= 0 && py < H && px >= 0 && px < W && nb[py * W + px]) return true; } return false; }).length;
+        const innerV = Math.min(inner, holeAB(x, y, w));
+        if (x > st.x0 + s * 6 && ring >= 7 && innerV < (onLine(y) ? .6 : .15) && F > .26 && F < .78 && Math.max(sL, sR) < .3 && (eL + eR) / 2 > .3 && Math.min(eL, eR) > .15 && (tp + bt) / 2 > .2) { const sym = Math.min(tp, bt) / Math.max(tp, bt, .01), symX = Math.min(eL, eR) / Math.max(eL, eR, .01); cand.push({ x, y, f: .4 + .2 * ring / 8 + .25 * sym + .15 * symX - innerV, filled: false, whole: k > 1 }); break; }
+      }
+    }
+    const acc = [];
+    cand.sort((a, b) => (b.filled - a.filled) || (b.f - a.f)); cand.forEach(c => { if (!acc.some(a => Math.abs(a.x - c.x) < s * (c.filled === a.filled ? 1.0 : 1.4) && Math.abs(a.y - c.y) < s * (c.filled === a.filled ? (c.filled ? .6 : .9) : 1.1))) acc.push(c); });
+    return acc.map(c => ({ ...c, s }));
+  },
+  classify(h, nb, W, H, st, box) {
+    const s = st.s, hw = s * 1.3; const xr = h.x + hw / 2 - 1, xl = h.x - hw / 2 + 1;
+    let best = { len: 0 }; [[xr, -1], [xl, 1], [xr - 1, -1], [xl + 1, 1]].forEach(([sx, dir]) => { const len = this.vRun(nb, W, H, sx, Math.round(h.y), dir); if (len > best.len) best = { len, sx, dir }; });
+    h.stem = best.len > s * 2.4 ? best : null;
+    if (h.filled && !h.stem) return false; // 채운 음표머리는 반드시 기둥이 있다(조표 숫자·잡티 거름)
+    let d = h.filled ? 1 : (h.stem ? 2 : 4);
+    if (h.filled && h.stem) { const ye = h.y + h.stem.dir * h.stem.len; const ys = Math.min(ye, ye - h.stem.dir * s * 1.6), yb = Math.max(ye, ye - h.stem.dir * s * 1.6);
+      const beamL = box(h.stem.sx - s * 1.4, ye - h.stem.dir * s * .5 - s * .25, h.stem.sx - s * .2, ye - h.stem.dir * s * .5 + s * .25), beamR = box(h.stem.sx + s * .2, ye - h.stem.dir * s * .5 - s * .25, h.stem.sx + s * 1.4, ye - h.stem.dir * s * .5 + s * .25);
+      const flag = box(h.stem.sx + 2, ys, h.stem.sx + s * 1.1, yb);
+      if (Math.max(beamL, beamR) > .55) { d = .5; const y2 = ye - h.stem.dir * s * 1.25; const b2 = Math.max(box(h.stem.sx - s * 1.4, y2 - s * .25, h.stem.sx - s * .2, y2 + s * .25), box(h.stem.sx + s * .2, y2 - s * .25, h.stem.sx + s * 1.4, y2 + s * .25)); if (b2 > .55) d = .25; }
+      else if (flag > .22) d = .5; }
+    const dotY = Math.abs(((h.y - st.top) / (s / 2)) % 2) < .5 ? h.y - s * .5 : h.y; // 줄 위 음표의 점은 위 칸에
+    const dot = box(h.x + hw * .75, dotY - s * .22, h.x + hw * .75 + s * .45, dotY + s * .22), dotGap = box(h.x + hw * .5, dotY - s * .15, h.x + hw * .7, dotY + s * .15);
+    if (dot > .55 && dotGap < .3) d *= 1.5;
+    h.d = d; return true;
+  },
+  pitch(y, st, clef) { const step = Math.round((st.bottom - y) / (st.s / 2)); const base = clef === 'bass' ? 2 * 7 + 4 : 4 * 7 + 2; const dn = base + step; const oct = Math.floor(dn / 7), idx = ((dn % 7) + 7) % 7; return (oct + 1) * 12 + [0, 2, 4, 5, 7, 9, 11][idx]; },
+  connected(nb, W, H, a, b) { // 두 오선 왼쪽 끝이 세로선(괄호/마디선)으로 이어졌나 → 큰보표
+    const x0 = Math.round(Math.min(a.x0, b.x0) - a.s * 1.5), x1 = Math.round(Math.max(a.x0, b.x0) + a.s * 1.0); for (let x = Math.max(0, x0); x <= Math.min(W - 1, x1); x++) { let on = 0, tot = 0; for (let y = Math.round(a.top); y <= Math.round(b.bottom); y++) { tot++; if (nb[y * W + x] || (x > 0 && nb[y * W + x - 1])) on++; } if (on / tot > .85) return true; } return false;
+  },
+  run(img, opts = {}) {
+    const iw = img.width, ih = img.height; if (!iw || !ih) throw new Error('사진을 열 수 없습니다');
+    const W = clamp(iw, 1000, 1600), H = Math.round(ih * W / iw); if (H > 4000) throw new Error('사진이 너무 깁니다. 한 페이지씩 찍어 주세요.');
+    let { cv, gray } = this.draw(img, W, H, 0); let bin = this.binarize(gray, W, H);
+    const ang = this.skew(bin, W, H); if (Math.abs(ang) > .2) { ({ cv, gray } = this.draw(img, W, H, -ang * Math.PI / 180)); bin = this.binarize(gray, W, H); }
+    const staves = this.findStaves(bin, W, H);
+    if (!staves.length) throw new Error('오선을 찾지 못했습니다. 밝은 곳에서 악보를 평평하게 펴고, 정면에서 오선이 화면 가로를 채우도록 다시 찍어 주세요.');
+    const nb = this.removeLines(bin, W, H, staves); const box = this.integral(nb, W, H);
+    // 오선 묶기(시스템)와 음자리표 결정
+    const systems = []; const clefOpt = opts.clef || 'auto';
+    for (let i = 0; i < staves.length; i++) { const a = staves[i], b = staves[i + 1]; const grand = clefOpt === 'grand' ? (b && i % 2 === 0) : clefOpt === 'auto' ? (b && b.top - a.bottom < a.s * 12 && this.connected(nb, W, H, a, b)) : false;
+      if (grand) { a.clef = 'treble'; a.hand = 'rh'; b.clef = 'bass'; b.hand = 'lh'; systems.push([a, b]); i++; } else { a.clef = clefOpt === 'bass' ? 'bass' : 'treble'; a.hand = a.clef === 'bass' ? 'lh' : 'rh'; systems.push([a]); } }
+    // 음표 검출·분류
+    const allHeads = []; systems.forEach(sys => sys.forEach(st => { let hs = this.heads(nb, W, H, st, box).filter(h => this.classify(h, nb, W, H, st, box));
+      const ts = hs.filter(h => !h.filled && !h.stem && h.x < st.x0 + st.s * 10); ts.forEach(h => { const pair = ts.find(o => o !== h && Math.abs(o.x - h.x) < st.s * .8 && Math.abs(o.y - h.y) > st.s * .7 && Math.abs(o.y - h.y) < st.s * 2.6); if (pair) h.timesig = pair.timesig = true; }); hs = hs.filter(h => !h.timesig);
+      const stems = hs.filter(h => h.filled && h.stem); hs = hs.filter(h => h.filled || !stems.some(f => Math.abs(h.x - f.stem.sx) < st.s * 1.3 && (h.y - f.y) * f.stem.dir > st.s * .6 && (h.y - f.y) * f.stem.dir < f.stem.len + st.s * 1.2)); hs.forEach(h => { h.m = this.pitch(h.y, st, st.clef); h.hand = st.hand; h.staff = st; }); st.heads = hs; allHeads.push(...hs); }));
+    if (!allHeads.length) throw new Error('오선은 찾았지만 음표를 찾지 못했습니다. 조금 더 가까이, 선명하게 찍어 주세요.');
+    // 시간 정렬: 시스템 안에서 가로 위치가 같은 음은 같은 시점
+    const notes = []; let t = 0;
+    systems.forEach(sys => { const s = sys[0].s; const hs = sys.flatMap(st => st.heads).sort((a, b) => a.x - b.x); const cols = []; hs.forEach(h => { const c = cols[cols.length - 1]; if (c && h.x - c.x < s * 1.1) { c.hs.push(h); } else cols.push({ x: h.x, hs: [h] }); });
+      cols.forEach(c => { // 같은 손의 같은 기둥 = 화음: 가장 짧은 박자로 통일
+        ['rh', 'lh'].forEach(hand => { const g = c.hs.filter(h => h.hand === hand); if (g.length > 1) { const d = Math.min(...g.map(h => h.d)); g.forEach(h => h.d = d); } });
+        const seen = new Set(); c.hs.forEach(h => { const k = h.hand + h.m; if (seen.has(k)) return; seen.add(k); notes.push({ m: h.m, s: t, d: h.d, h: h.hand }); }); t += Math.min(...c.hs.map(h => h.d)); }); });
+    const grandCount = systems.filter(x => x.length === 2).length;
+    const info = `오선 ${staves.length}줄 (${grandCount ? '큰보표: 위 오른손·아래 왼손' : (systems[0][0].clef === 'bass' ? '낮은음자리표' : '높은음자리표')}) · 음표 ${allHeads.length}개 인식 · 기울기 ${(-ang).toFixed(1)}° 보정. #·♭·쉼표는 읽지 않으니 들어보고 고쳐 주세요.`;
+    return { song: { id: 'new', title: '사진 악보 ' + new Date().toLocaleDateString('ko-KR'), bpm: 90, sig: 4, level: 9, notes }, staves, heads: allHeads, canvas: cv, info, angle: -ang };
+  }
+};
+
+/* ========== AI로 다시 읽기 (본인 API 키가 있을 때만) ========== */
+const AIRead = {
+  available() { return !!(S.settings.apiKey && S.settings.apiKey.startsWith('sk-')); },
+  async imageB64(file) { const img = await OMR.loadImage(file); const sc = Math.min(1, 1568 / Math.max(img.width, img.height)); const cv = document.createElement('canvas'); cv.width = Math.round(img.width * sc); cv.height = Math.round(img.height * sc); cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height); return cv.toDataURL('image/jpeg', .9).split(',')[1]; },
+  prompt: 'This photo shows printed sheet music. Transcribe every note. Reply with ONLY one JSON object: {"title": string, "bpm": number, "sig": number, "rh": string, "lh": string}. rh = treble staff (right hand), lh = bass staff (left hand, empty string if none). Each is space-separated tokens: PITCH/BEATS where PITCH is letter+optional # or b+octave (middle C = C4), BEATS in quarter notes (4 whole, 2 half, 1 quarter, 0.5 eighth, 0.25 sixteenth, dotted = x1.5). Chords: C4+E4+G4/1. Rests: R/1. Apply the key signature and accidentals to the pitches. Example: {"title":"Song","bpm":90,"sig":4,"rh":"C4/1 D4/1 E4/2","lh":"C3+G3/4"}',
+  async run() {
+    const f = Review.ctx && Review.ctx.photoFile; if (!f) return; const btn = $('#rvAI'); btn.disabled = true; $('#rvMsg').textContent = '🤖 AI가 악보를 읽는 중… (10~40초)';
+    try {
+      const b64 = await this.imageB64(f);
+      const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': S.settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, body: JSON.stringify({ model: 'claude-sonnet-5-5', max_tokens: 4000, messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } }, { type: 'text', text: this.prompt }] }] }) });
+      const j = await res.json(); if (j.error) throw new Error(j.error.message); const txt = (j.content || []).map(c => c.text || '').join(''); const m = txt.match(/\{[\s\S]*\}/); if (!m) throw new Error('AI 응답을 해석하지 못했습니다');
+      const o = JSON.parse(m[0]); const text = (o.rh || '') + (o.lh ? '\nL: ' + o.lh : ''); const { notes } = Notation.fromText(text); if (!notes.length) throw new Error('AI가 음표를 찾지 못했습니다');
+      const prev = Review.ctx; Review.open({ id: 'new', title: o.title || $('#rvTitle').value, bpm: clamp(+o.bpm || 90, 30, 240), sig: [2, 3, 4, 6].includes(+o.sig) ? +o.sig : 4, level: 9, notes }, { source: 'AI 인식', photo: prev.photo, photoFile: f, clef: prev.clef, info: `AI가 읽은 결과: ${notes.length}음. 들어보고 틀린 부분은 고쳐 주세요.` });
+    } catch (e) { $('#rvMsg').textContent = 'AI 인식 실패: ' + e.message + ' (설정의 API 키를 확인하세요)'; }
+    finally { btn.disabled = false; }
+  }
+};
+
 /* ---- 부팅 ---- */
-let _booted = false; const boot = () => { if (_booted) return; _booted = true; try { App.init(); Studio.init(); } catch (e) { console.error('init failed', e); } };
+let _booted = false; const boot = () => { if (_booted) return; _booted = true; try { App.init(); Studio.init(); Library.init(); } catch (e) { console.error('init failed', e); } };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
 </script>
